@@ -26,7 +26,7 @@ html,body{height:100%;margin:0}
 [hidden]{display:none!important}
 body{background:var(--abyss);color:var(--ink);font-family:var(--ui);overflow:hidden;
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:default}
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));
   background:radial-gradient(ellipse at 50% 40%,rgba(7,11,22,.55),rgba(7,11,22,.92));
@@ -72,9 +72,9 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
 #knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;
   background:radial-gradient(circle at 40% 35%,#fff,var(--cryo));opacity:.75}
 #tbtns{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));
-  display:grid;grid-template-columns:repeat(2,64px);gap:10px;pointer-events:auto}
+  display:grid;grid-template-columns:repeat(3,64px);gap:10px;pointer-events:auto}
 .tb{width:64px;height:64px;border-radius:50%;border:2px solid rgba(230,198,122,.6);background:rgba(10,18,36,.6);
-  color:var(--glacier);font:800 15px var(--ui);touch-action:none;font-variant-numeric:tabular-nums}
+  color:var(--glacier);font:800 12px/1.15 var(--ui);touch-action:none;font-variant-numeric:tabular-nums;padding:0}
 .tb.ready{border-color:var(--cryo);box-shadow:0 0 18px var(--cryo);color:#fff}
 @media (max-width:720px){
   .panel{grid-template-columns:1fr;padding:20px;gap:14px}
@@ -90,10 +90,12 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
 <div id="touch" hidden>
   <div id="stick"><div id="knob"></div></div>
   <div id="tbtns">
-    <button class="tb" data-k="e" id="tbE" type="button">E</button>
-    <button class="tb" data-k="q" id="tbQ" type="button">Q</button>
-    <button class="tb" data-k="atk" type="button">ATK</button>
-    <button class="tb" data-k="dash" type="button">DASH</button>
+    <button class="tb" data-k="run" id="tbRun" type="button">Run</button>
+    <button class="tb" data-k="e" id="tbE" type="button">Skill</button>
+    <button class="tb" data-k="q" id="tbQ" type="button">Burst</button>
+    <button class="tb" data-k="dash" type="button">Dash</button>
+    <button class="tb" data-k="jump" type="button">Jump</button>
+    <button class="tb" data-k="atk" type="button">Attack</button>
   </div>
 </div>
 
@@ -108,10 +110,12 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
         and shatter his Blazing Aegis with <span class="cryo">Cryo</span> to freeze him in place.</p>
       <dl class="keys">
         <dt><kbd>WASD</kbd></dt><dd>Move</dd>
-        <dt><kbd>Click</kbd> / <kbd>J</kbd></dt><dd>Normal Attack · Frost Shards (hold)</dd>
+        <dt><kbd>Click</kbd> / <kbd>J</kbd></dt><dd>Attack · Frost Shards home in on the boss (hold)</dd>
         <dt><kbd>E</kbd></dt><dd>Elemental Skill · Frostbloom (heals)</dd>
         <dt><kbd>Q</kbd></dt><dd>Elemental Burst · Eternal Winter Waltz</dd>
-        <dt><kbd>Shift</kbd> / <kbd>Space</kbd></dt><dd>Dash (invulnerable, uses stamina)</dd>
+        <dt><kbd>Space</kbd></dt><dd>Jump · clears shockwaves, fire and eruptions</dd>
+        <dt><kbd>Shift</kbd></dt><dd>Run (hold, uses stamina)</dd>
+        <dt><kbd>C</kbd> / <kbd>Right-click</kbd></dt><dd>Dash (invulnerable, uses stamina)</dd>
         <dt><kbd>P</kbd> / <kbd>M</kbd></dt><dd>Pause / Mute</dd>
       </dl>
       <button class="btn" id="start" type="button">Begin Challenge</button>
@@ -210,6 +214,7 @@ function sfx(k) {
     case 'bloom': tone(880, 0.6, 'sine', 0.12, 2); tone(1320, 0.7, 'triangle', 0.06, 2); noise(0.35, 0.12, 3500, 'highpass'); break;
     case 'burst': [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 1.6, 'sine', 0.07, 1, i * 0.06)); noise(1.2, 0.08, 5000, 'highpass'); break;
     case 'hurt': tone(210, 0.22, 'square', 0.08, 0.5); break;
+    case 'jump': tone(520, 0.14, 'sine', 0.06, 1.8); break;
     case 'dash': noise(0.16, 0.1, 2600, 'highpass'); break;
     case 'break': noise(0.7, 0.35, 2200, 'highpass'); tone(1760, 0.6, 'triangle', 0.08, 0.4); tone(260, 0.7, 'sawtooth', 0.08, 0.4); break;
     case 'roar': tone(95, 1.2, 'sawtooth', 0.14, 0.55); noise(1.0, 0.2, 320); break;
@@ -220,8 +225,8 @@ function sfx(k) {
 
 /* ---------------- input ---------------- */
 const keys = {}, pressed = {};
-const mouse = { x: CX, y: CY, down: false, used: false };
-const touch = { on: false, jx: 0, jy: 0, atk: false };
+const mouse = { down: false };
+const touch = { on: false, jx: 0, jy: 0, atk: false, run: false };
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k) && S.mode === 'play') e.preventDefault();
@@ -230,10 +235,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.down = false; if (S.mode === 'play') S.mode = 'paused'; });
-function toWorld(cx, cy) { return { x: (cx - offX) / scale, y: (cy - offY) / scale }; }
-cvs.addEventListener('mousemove', e => { const p = toWorld(e.clientX, e.clientY); mouse.x = p.x; mouse.y = p.y; mouse.used = true; });
 cvs.addEventListener('mousedown', e => {
-  const p = toWorld(e.clientX, e.clientY); mouse.x = p.x; mouse.y = p.y; mouse.used = true;
   if (e.button === 0) mouse.down = true;
   if (e.button === 2) pressed.dash = true;
 });
@@ -261,7 +263,7 @@ const stickEnd = e => { if (e.pointerId !== stickId) return; stickId = null; tou
 stick.addEventListener('pointerup', stickEnd); stick.addEventListener('pointercancel', stickEnd);
 document.querySelectorAll('.tb').forEach(b => {
   const k = b.dataset.k;
-  b.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); if (k === 'atk') touch.atk = true; else pressed[k] = true; });
+  b.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); if (k === 'atk') touch.atk = true; else if (k === 'run') { touch.run = !touch.run; b.classList.toggle('ready', touch.run); } else pressed[k] = true; });
   const up = () => { if (k === 'atk') touch.atk = false; };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
 });
@@ -276,7 +278,7 @@ function newGame(mode) {
     mode, t: 0, anim: 0, shake: 0, hitStop: 0, cutin: 0, banner: null, endT: 0,
     P: { x: CX - 260, y: CY + 90, r: 16, hp: 1200, maxHp: 1200, hpShown: 1200, sta: 100, staDelay: 0, energy: 20, maxEnergy: 60,
       face: 1, dirx: 1, diry: 0, moving: false, atkCd: 0, combo: 0, comboT: 0, skillCd: 0, burstCd: 0, burstT: 0, burstTick: 0,
-      dashT: 0, dashCd: 0, dashDx: 1, dashDy: 0, iframe: 0, dashIframe: 0, hurtT: 0, castT: 0, evadeT: 0, },
+      dashT: 0, dashCd: 0, dashDx: 1, dashDy: 0, iframe: 0, dashIframe: 0, hurtT: 0, castT: 0, evadeT: 0, z: 0, vz: 0, running: false, runLock: false },
     B: { x: CX + 170, y: CY - 50, r: 62, hp: BOSS_HP, maxHp: BOSS_HP, hpShown: BOSS_HP, shield: 0, maxShield: 1,
       phase: 1, state: 'idle', t: 0, sub: 0, idleDur: 1.6, tx: CX, ty: CY - 40, pyro: 0, stun: 0, hitFlash: 0,
       invuln: 0, glow: 0, cdx: 1, cdy: 0, hitPlayer: false, spin: 0, last: '', reshield: false, dead: false, deathT: 0, trailT: 0 },
@@ -308,7 +310,8 @@ function banner(text, sub, color) { S.banner = { text, sub, color: color || '#e6
 /* ---------------- damage ---------------- */
 function dealBoss(base, x, y, kind) {
   const B = S.B;
-  if (B.dead || B.invuln > 0 || S.mode !== 'play') return false;
+  if (B.dead || S.mode !== 'play') return false;
+  if (B.invuln > 0) { if (!(S.immT > S.anim)) { popText(x, y, 'Immune', '#c9d3e6', 18); S.immT = S.anim + 0.5; } return false; }
   let dmg = base * rand(0.92, 1.08);
   const crit = Math.random() < 0.45;
   if (crit) dmg *= 2.0;
@@ -361,9 +364,13 @@ function killBoss() {
   S.shake = 22; S.hitStop = 0.25;
   banner('Pyrrhos is extinguished', 'Challenge completed', '#bfe9ff');
 }
-function hurtPlayer(d, sx, sy) {
+function hurtPlayer(d, sx, sy, ground) {
   const P = S.P;
   if (S.mode !== 'play' || P.hp <= 0) return false;
+  if (ground && P.z > 16) {
+    if (P.evadeT <= 0) { popText(P.x, P.y - 90 - P.z, 'Dodged', '#bfe9ff', 18); P.evadeT = 0.6; }
+    return false;
+  }
   if (P.iframe > 0) {
     if (P.dashIframe > 0 && P.evadeT <= 0) { popText(P.x, P.y - 80, 'Evade', '#bfe9ff', 18); P.evadeT = 0.6; }
     return false;
@@ -382,10 +389,8 @@ function hurtPlayer(d, sx, sy) {
 function defeat() { S.mode = 'lose'; S.endT = 0; sfx('lose'); banner('Yukina has fallen', 'The flames endure… for now', '#ff9a6b'); }
 
 /* ---------------- player ---------------- */
-function aimPoint() {
-  if (mouse.used && !touchMode) return { x: mouse.x, y: mouse.y, ground: false };
-  return { x: S.B.x, y: S.B.y - 60, ground: true };
-}
+// Auto-target: every attack locks onto the boss's body.
+function aimPoint() { return { x: S.B.x, y: S.B.y - 70 + Math.sin(S.anim * 2) * 6 }; }
 function updPlayer(dt) {
   const P = S.P;
   let mx = 0, my = 0;
@@ -403,7 +408,27 @@ function updPlayer(dt) {
   if (P.staDelay <= 0) P.sta = Math.min(100, P.sta + dt * 32);
 
   // dash
-  if ((pressed.shift || pressed[' '] || pressed.dash) && P.dashCd <= 0 && P.sta >= 20) {
+  // jump
+  if ((pressed[' '] || pressed.jump) && P.z <= 0 && P.dashT <= 0) {
+    P.vz = 470;
+    spray(P.x, P.y, 10, { color: CRYO_C, smin: 30, smax: 120, shape: 'flake', lmax: 0.5, jit: 8 });
+    sfx('jump');
+  }
+  if (P.z > 0 || P.vz > 0) {
+    P.vz -= 1500 * dt; P.z += P.vz * dt;
+    if (P.z <= 0) { P.z = 0; P.vz = 0; spray(P.x, P.y, 12, { color: CRYO_C, smin: 40, smax: 150, lmax: 0.4 }); }
+  }
+  // run (hold Shift)
+  const runHeld = keys.shift || touch.run;
+  if (!runHeld || P.sta > 30) P.runLock = false;
+  P.running = runHeld && !P.runLock && P.moving && P.dashT <= 0 && P.sta > 0;
+  if (P.running) {
+    P.sta -= 16 * dt; P.staDelay = 0.6;
+    if (P.sta <= 0) { P.sta = 0; P.runLock = true; }
+    if (Math.random() < 0.5) spray(P.x - P.dirx * 10, P.y, 1, { color: CRYO_C, smin: 5, smax: 30, shape: 'flake', lmin: 0.3, lmax: 0.6 });
+  }
+  // dash
+  if ((pressed.c || pressed.dash) && P.dashCd <= 0 && P.sta >= 20) {
     let dx = P.dirx, dy = P.diry;
     if (!P.moving) { const a = aimPoint(); const ang = Math.atan2(a.y - P.y, a.x - P.x) + Math.PI; dx = Math.cos(ang); dy = Math.sin(ang); }
     P.dashDx = dx; P.dashDy = dy; P.dashT = 0.2; P.iframe = Math.max(P.iframe, 0.32); P.dashIframe = 0.32;
@@ -416,19 +441,19 @@ function updPlayer(dt) {
     P.dashT -= dt; vx = P.dashDx * 780; vy = P.dashDy * 780 * 0.8;
     if (Math.random() < 0.8) spray(P.x, P.y - 28, 1, { color: CRYO_C, smin: 5, smax: 30, shape: 'flake', lmin: 0.4, lmax: 0.8, jit: 12 });
   } else {
-    const sp = 270 * (P.atkCd > 0 ? 0.78 : 1) * (P.burstT > 0 ? 1.1 : 1);
+    const sp = 270 * (P.running ? 1.65 : P.atkCd > 0 ? 0.78 : 1) * (P.burstT > 0 ? 1.1 : 1);
     vx = mx * sp; vy = my * sp * 0.8;
   }
   P.x += vx * dt; P.y += vy * dt; clampArena(P, 0.96);
 
   const aim = aimPoint();
   const atkHeld = mouse.down || keys.j || touch.atk;
-  if (atkHeld || P.castT > 0) P.face = aim.x < P.x ? -1 : 1;
+  if (atkHeld || P.castT > 0 || P.burstT > 0) P.face = aim.x < P.x ? -1 : 1;
   else if (Math.abs(mx) > 0.1) P.face = mx < 0 ? -1 : 1;
 
   // normal attack
   if (atkHeld && P.atkCd <= 0 && P.dashT <= 0) {
-    const sx = P.x + P.face * 16, sy = P.y - 42;
+    const sx = P.x + P.face * 16, sy = P.y - 42 - P.z;
     const ang = Math.atan2(aim.y - sy, aim.x - sx);
     const step = P.combo; P.combo = (P.combo + 1) % 4; P.comboT = 0.9;
     if (step < 3) { fireShard(sx, sy, ang, 58 + step * 10); P.atkCd = 0.25; }
@@ -438,12 +463,7 @@ function updPlayer(dt) {
   }
   // elemental skill
   if (pressed.e && P.skillCd <= 0) {
-    let tx, ty;
-    if (aim.ground) { tx = S.B.x; ty = S.B.y; } else { tx = aim.x; ty = aim.y; }
-    const d = Math.hypot(tx - P.x, ty - P.y), max = 360;
-    if (d > max) { tx = P.x + (tx - P.x) / d * max; ty = P.y + (ty - P.y) / d * max; }
-    const o = { x: tx, y: ty }; clampArena(o, 0.98);
-    S.blooms.push({ x: o.x, y: o.y, t: 0, done: false });
+    S.blooms.push({ x: S.B.x, y: S.B.y, t: 0, done: false });
     P.skillCd = 7; P.castT = 0.35;
     spray(P.x + P.face * 16, P.y - 44, 14, { color: CRYO_C, smin: 40, smax: 160, shape: 'flake', lmax: 0.6 });
     sfx('cast');
@@ -457,7 +477,9 @@ function updPlayer(dt) {
     P.burstT -= dt; P.burstTick -= dt;
     if (P.burstTick <= 0) {
       P.burstTick = 0.3;
-      if (gdist(P.x, P.y, S.B.x, S.B.y) < 250 + 40) dealBoss(105, S.B.x + rand(-30, 30), S.B.y - 70 + rand(-30, 30), 'tick');
+      const a = rand(0, TAU), r = rand(60, 200);
+      const sx = P.x + Math.cos(a) * r, sy = P.y - 40 - P.z + Math.sin(a) * r * GY;
+      fireShard(sx, sy, a, 105, 'tick');
     }
     // storm destroys fireballs
     for (const f of S.foes) if (Math.hypot(f.x - P.x, (f.y - P.y + 30) / 0.8) < 200) { f.life = 0; spray(f.x, f.y, 5, { color: CRYO_C, lmax: 0.4 }); }
@@ -472,19 +494,27 @@ function startBurst() {
   P.burstT = 6; P.burstTick = 0.35;
   S.shake = 14;
   spray(P.x, P.y - 30, 80, { color: CRYO_C, smin: 200, smax: 620, shape: 'shard', lmin: 0.5, lmax: 1.1, zmax: 8, drag: 2.5 });
-  if (gdist(P.x, P.y, S.B.x, S.B.y) < 300) dealBoss(640, S.B.x, S.B.y - 80);
+  dealBoss(640, S.B.x, S.B.y - 80);
 }
-function fireShard(x, y, ang, dmg) {
-  S.shots.push({ x, y, vx: Math.cos(ang) * 980, vy: Math.sin(ang) * 980, ang, life: 0.8, dmg });
+function fireShard(x, y, ang, dmg, kind) {
+  S.shots.push({ x, y, ang, age: 0, life: 3, dmg, kind });
 }
 function updShots(dt) {
   const B = S.B, bx = B.x, by = B.y - 70 + Math.sin(S.anim * 2) * 6;
   for (const s of S.shots) {
-    s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+    // homing: steer harder the longer the shard flies, and speed up, so it always connects
+    s.age += dt; s.life -= dt;
+    if (!B.dead) {
+      let diff = Math.atan2(by - s.y, bx - s.x) - s.ang;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      s.ang += diff * Math.min(1, dt * (8 + s.age * 80));
+    } else s.life = Math.min(s.life, 0.3);
+    const sp = 900 + s.age * 1800;
+    s.x += Math.cos(s.ang) * sp * dt; s.y += Math.sin(s.ang) * sp * dt;
     if (Math.random() < 0.6) S.parts.push({ x: s.x, y: s.y, vx: 0, vy: 0, life: 0.25, max: 0.25, size: 3, color: '#bfe9ff', g: 0, drag: 0, shape: 'dot', rot: 0, vr: 0, add: true });
     if (!B.dead && Math.hypot(s.x - bx, s.y - by) < B.r + 10) {
       s.life = 0;
-      if (dealBoss(s.dmg, s.x, s.y)) S.P.energy = Math.min(S.P.maxEnergy, S.P.energy + 0.7);
+      if (dealBoss(s.dmg, s.x, s.y, s.kind) && s.kind !== 'tick') S.P.energy = Math.min(S.P.maxEnergy, S.P.energy + 0.7);
       spray(s.x, s.y, 7, { color: CRYO_C, smin: 60, smax: 240, shape: 'shard', lmax: 0.4 });
     }
   }
@@ -494,6 +524,7 @@ function updBlooms(dt) {
   const P = S.P, B = S.B;
   for (const b of S.blooms) {
     b.t += dt;
+    if (!b.done && !B.dead) { b.x = B.x; b.y = B.y; } // lotus locks onto the boss
     if (!b.done && b.t >= 0.35) {
       b.done = true; S.shake = Math.max(S.shake, 7);
       sfx('bloom');
@@ -501,7 +532,7 @@ function updBlooms(dt) {
       for (const f of S.foes) if (gdist(f.x, f.y + 40, b.x, b.y) < 170) f.life = 0;
       const heal = Math.round(P.maxHp * 0.08);
       if (P.hp < P.maxHp) { P.hp = Math.min(P.maxHp, P.hp + heal); popText(P.x, P.y - 80, '+' + heal, '#9ff59a', 18); }
-      if (!B.dead && gdist(B.x, B.y, b.x, b.y) < 150 + 50) {
+      if (!B.dead) {
         dealBoss(330, B.x, B.y - 90);
         for (let i = 0; i < 3; i++) S.orbs.push({ x: B.x + rand(-40, 40), y: B.y - 60 + rand(-30, 30), vx: rand(-160, 160), vy: rand(-200, -60), t: 0 });
       }
@@ -596,7 +627,7 @@ function updBoss(dt) {
         B.trailT -= dt;
         if (B.trailT <= 0) { B.trailT = 0.045; S.hazards.push({ kind: 'fire', x: B.x, y: B.y, r: 40, t: 0, life: 2.6, tick: 0 }); }
         spray(B.x, bodyY, 4, { color: PYRO_C, smin: 40, smax: 160, lmax: 0.5 });
-        if (!B.hitPlayer && gdist(P.x, P.y, B.x, B.y) < 80) { if (hurtPlayer(180, B.x, B.y)) B.hitPlayer = true; }
+        if (!B.hitPlayer && gdist(P.x, P.y, B.x, B.y) < 80) { if (hurtPlayer(180, B.x, B.y, true)) B.hitPlayer = true; }
         if (!inArena(B.x, B.y, 0.82) || B.t > 0.7) { clampArena(B, 0.82); B.sub = 2; B.t = 0; S.shake = 8; }
       } else if (B.t > 0.8) toState('idle');
       break;
@@ -666,7 +697,7 @@ function updFoes(dt) {
   for (const f of S.foes) {
     f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
     if (Math.random() < 0.5) S.parts.push({ x: f.x + rand(-4, 4), y: f.y + rand(-4, 4), vx: -f.vx * 0.1, vy: -f.vy * 0.1 - 20, life: 0.35, max: 0.35, size: f.r * 0.6, color: PYRO_C[(Math.random() * 4) | 0], g: 0, drag: 1, shape: 'dot', rot: 0, vr: 0, add: true });
-    if (Math.hypot(f.x - P.x, f.y - (P.y - 30)) < f.r + 14) { if (hurtPlayer(f.dmg, f.x, f.y)) f.life = 0; }
+    if (Math.hypot(f.x - P.x, f.y - (P.y - 30 - P.z)) < f.r + 14) { if (hurtPlayer(f.dmg, f.x, f.y)) f.life = 0; }
     if (f.x < -60 || f.x > W + 60 || f.y < -60 || f.y > H + 60) f.life = 0;
   }
   S.foes = S.foes.filter(f => f.life > 0);
@@ -674,19 +705,19 @@ function updFoes(dt) {
     h.t += dt;
     if (h.kind === 'fire') {
       h.tick -= dt;
-      if (h.tick <= 0 && gdist(P.x, P.y, h.x, h.y) < h.r) { h.tick = 0.5; hurtPlayer(28); }
+      if (h.tick <= 0 && gdist(P.x, P.y, h.x, h.y) < h.r) { h.tick = 0.5; hurtPlayer(28, undefined, undefined, true); }
       if (Math.random() < 0.08) spray(h.x + rand(-20, 20), h.y, 1, { color: PYRO_C, ang: -Math.PI / 2, spread: 0.3, smin: 20, smax: 70, lmax: 0.6 });
     } else if (!h.done && h.t >= h.delay) {
       h.done = true; S.shake = Math.max(S.shake, h.kind === 'meteor' ? 9 : 6); sfx('boom');
       spray(h.x, h.y - 20, 30, { color: PYRO_C, ang: -Math.PI / 2, spread: 1.2, smin: 100, smax: 420, g: 500, lmin: 0.4, lmax: 0.9, zmax: 7 });
-      if (gdist(P.x, P.y, h.x, h.y) < h.r) hurtPlayer(h.dmg, h.x, h.y);
+      if (gdist(P.x, P.y, h.x, h.y) < h.r) hurtPlayer(h.dmg, h.x, h.y, true);
       if (h.kind === 'meteor') S.hazards.push({ kind: 'fire', x: h.x, y: h.y, r: 44, t: 0, life: 2.2, tick: 0 });
     }
   }
   S.hazards = S.hazards.filter(h => h.kind === 'fire' ? h.t < h.life : h.t < h.delay + 0.45);
   for (const r of S.rings) {
     r.r += r.sp * dt;
-    if (!r.hit && Math.abs(gdist(P.x, P.y, r.x, r.y) - r.r) < r.w + 6) { if (hurtPlayer(r.dmg, r.x, r.y)) r.hit = true; }
+    if (!r.hit && Math.abs(gdist(P.x, P.y, r.x, r.y) - r.r) < r.w + 6) { if (hurtPlayer(r.dmg, r.x, r.y, true)) r.hit = true; }
   }
   S.rings = S.rings.filter(r => r.r < 1300);
 }
@@ -1332,13 +1363,33 @@ function drawHUD(g) {
 
   // skills (desktop)
   if (!touchMode) {
-    skillIcon(g, W - 170, H - 58, 30, 'E', P.skillCd, 7, 'skill', 1);
+    skillIcon(g, W - 170, H - 58, 30, 'E · Skill', P.skillCd, 7, 'skill', 1);
     const ready = P.energy >= P.maxEnergy && P.burstCd <= 0;
-    skillIcon(g, W - 78, H - 72, 40, 'Q', P.burstCd, 16, 'burst', P.energy / P.maxEnergy, ready);
-    g.textAlign = 'center'; g.font = `700 11px ${FONT_U}`; g.fillStyle = '#93a8c9';
-    g.fillText('Shift · Dash', W - 250, H - 30);
-    g.fillText('Click · Attack', W - 250, H - 48);
+    skillIcon(g, W - 78, H - 72, 40, 'Q · Burst', P.burstCd, 16, 'burst', P.energy / P.maxEnergy, ready);
+    drawLegend(g);
   }
+}
+const LEGEND = [
+  ['WASD', 'Move'], ['Click / J', 'Attack (auto-aim)'], ['E', 'Frostbloom skill'], ['Q', 'Winter Waltz burst'],
+  ['Space', 'Jump'], ['Shift', 'Run (hold)'], ['C', 'Dash'], ['P', 'Pause'], ['M', 'Mute']
+];
+function drawLegend(g) {
+  const x = 18, y0 = 66, rh = 19, w = 196;
+  g.save();
+  g.fillStyle = 'rgba(8,14,30,0.62)'; g.strokeStyle = 'rgba(230,198,122,0.3)'; g.lineWidth = 1;
+  g.beginPath(); g.roundRect(x, y0, w, LEGEND.length * rh + 12, 6); g.fill(); g.stroke();
+  g.font = `800 11px ${FONT_U}`; g.textBaseline = 'middle';
+  LEGEND.forEach(([k, label], i) => {
+    const y = y0 + 6 + i * rh + rh / 2;
+    const kw = Math.max(20, g.measureText(k).width + 10);
+    g.fillStyle = 'rgba(191,233,255,0.1)'; g.strokeStyle = 'rgba(191,233,255,0.4)';
+    g.beginPath(); g.roundRect(x + 8, y - 8, kw, 16, 3); g.fill(); g.stroke();
+    g.fillStyle = '#bfe9ff'; g.textAlign = 'center'; g.fillText(k, x + 8 + kw / 2, y + 0.5);
+    g.fillStyle = '#dfe9f7'; g.textAlign = 'left'; g.font = `700 11px ${FONT_U}`;
+    g.fillText(label, x + 16 + kw, y + 0.5);
+    g.font = `800 11px ${FONT_U}`;
+  });
+  g.restore();
 }
 function skillIcon(g, x, y, r, key, cd, max, kind, energy, ready) {
   const t = S.anim;
@@ -1374,9 +1425,9 @@ function drawStamina(g) {
   if (P.sta >= 100) return;
   g.save();
   g.lineWidth = 4; g.lineCap = 'round';
-  g.strokeStyle = 'rgba(10,14,30,0.6)'; g.beginPath(); g.arc(P.x + 30, P.y - 46, 13, -Math.PI / 2, Math.PI * 1.5); g.stroke();
+  g.strokeStyle = 'rgba(10,14,30,0.6)'; g.beginPath(); g.arc(P.x + 30, P.y - 46 - P.z, 13, -Math.PI / 2, Math.PI * 1.5); g.stroke();
   g.strokeStyle = P.sta < 20 ? '#ff7a5a' : '#f4d35e';
-  g.beginPath(); g.arc(P.x + 30, P.y - 46, 13, -Math.PI / 2, -Math.PI / 2 + TAU * P.sta / 100); g.stroke();
+  g.beginPath(); g.arc(P.x + 30, P.y - 46 - P.z, 13, -Math.PI / 2, -Math.PI / 2 + TAU * P.sta / 100); g.stroke();
   g.restore();
 }
 function drawBanner(g) {
@@ -1444,14 +1495,14 @@ function render() {
   const P = S.P, B = S.B;
   // shadows
   g.fillStyle = 'rgba(0,0,0,0.35)';
-  ell(g, P.x, P.y, 16, 6); g.fill();
+  ell(g, P.x, P.y, 16 * (1 - P.z / 180), 6 * (1 - P.z / 180)); g.fill();
   if (!B.dead || B.deathT < 2.2) { ell(g, B.x, B.y, 70 * (B.dead ? Math.max(0, 1 - B.deathT / 2.2) : 1), 20); g.fill(); }
   const drawP = () => {
     if (S.mode === 'title') return;
     const blink = P.iframe > 0 && P.dashIframe <= 0 && Math.floor(S.anim * 20) % 2;
     g.save(); if (blink) g.globalAlpha = 0.45; if (P.dashT > 0) g.globalAlpha = 0.75;
     if (P.hp <= 0) { g.globalAlpha = 0.6; g.translate(P.x, P.y); g.rotate(-1.2 * P.face); g.translate(-P.x, -P.y); }
-    drawGirl(g, P.x, P.y, 1.15, P.face, S.anim, { moving: P.moving || P.dashT > 0, dash: P.dashT > 0, cast: P.castT > 0, hurt: P.hurtT > 0 });
+    drawGirl(g, P.x, P.y - P.z, 1.15, P.face, P.running ? S.anim * 1.5 : S.anim, { moving: (P.moving || P.dashT > 0) && P.z <= 0, dash: P.dashT > 0, cast: P.castT > 0, hurt: P.hurtT > 0 });
     g.restore();
   };
   if (P.y < B.y) { drawP(); drawBoss(g, B, S.anim); } else { drawBoss(g, B, S.anim); drawP(); }
@@ -1524,9 +1575,9 @@ function frame(now) {
   // touch button states
   if (touchMode && S.mode === 'play') {
     const P = S.P;
-    tbE.textContent = P.skillCd > 0 ? P.skillCd.toFixed(1) : 'E';
+    tbE.textContent = P.skillCd > 0 ? P.skillCd.toFixed(1) : 'Skill';
     const qr = P.energy >= P.maxEnergy && P.burstCd <= 0;
-    tbQ.textContent = P.burstCd > 0 ? P.burstCd.toFixed(1) : qr ? 'Q' : Math.floor(P.energy / P.maxEnergy * 100) + '%';
+    tbQ.textContent = P.burstCd > 0 ? P.burstCd.toFixed(1) : qr ? 'Burst' : Math.floor(P.energy / P.maxEnergy * 100) + '%';
     tbQ.classList.toggle('ready', qr);
   }
   render();

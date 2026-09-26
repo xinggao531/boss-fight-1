@@ -9,13 +9,15 @@ Open `index.html` in a browser to play. There is no build step.
 | Input | Action |
 | --- | --- |
 | WASD / arrows | Move |
-| Click / J (hold) | Normal Attack: Frost Shards (3-hit combo, then a 5-shard finisher) |
-| E | Elemental Skill: Frostbloom, an ice lotus at the cursor that heals you and drops energy particles |
-| Q | Elemental Burst: Eternal Winter Waltz, a 6s blizzard that deals damage, blocks fireballs and cuts damage taken by 40% |
-| Shift / Space / Right-click | Dash with i-frames (uses stamina) |
+| Click / J (hold) | Attack: Frost Shards home in on the boss and always hit (3-hit combo, then a 5-shard finisher) |
+| E | Elemental Skill: Frostbloom, an ice lotus that locks onto the boss, heals you and drops energy particles |
+| Q | Elemental Burst: Eternal Winter Waltz, a 6s blizzard of homing icicles that blocks fireballs and cuts damage taken by 40% |
+| Space | Jump: while airborne, ground attacks (shockwaves, fire trails, eruptions, meteors, the charge) miss you |
+| Shift (hold) | Run: 65% faster, drains stamina |
+| C / Right-click | Dash with i-frames (uses stamina) |
 | P / Esc, M | Pause, Mute |
 
-Touch controls (joystick and buttons) show up on phones.
+The key legend stays on screen during the fight. Touch controls (joystick and buttons) show up on phones.
 
 ## Mechanics
 
