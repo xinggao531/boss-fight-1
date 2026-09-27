@@ -5,7 +5,7 @@ A Genshin Impact–inspired boss fight in one HTML file. You lead a party of two
 - **Yukina, the Frostbloom Maiden** (Cryo): ice shards, Frostbloom (E) and Eternal Winter Waltz (Q).
 - **Mizuha** (Hydro): water orbs, Tide Sprite (E, a water koi that keeps attacking for 6s even after you switch out) and Tidal Lullaby (Q, heals the whole party, then rains healing for 5s).
 
-Character art (the two in-battle sprites and the two Elemental Burst poses) is embedded in `index.html` as WebP data. Open `index.html` in a browser to play. There is no build step.
+Character and boss art (in-battle sprites, Elemental Burst poses, the boss's normal / attack / burst / defence / downed states, and fireball, eruption, rock-burst and lava-pool effects) is embedded in `index.html` as WebP data. Open `index.html` in a browser to play. There is no build step.
 
 ## Controls
 
@@ -34,4 +34,5 @@ The key legend stays on screen during the fight. Touch controls (joystick and bu
 
 - **Melt:** Pyrrhos is Pyro-affected when he attacks (unless Cryo or Hydro is already on him). Cryo hits then Melt for 1.5× damage.
 - **Blazing Aegis:** below 55% HP (and again at 25%) he gains a shield. Cryo does 2.5× damage to it, and breaking it freezes him for 5.5s.
+- **Boss animation:** Pyrrhos breathes while idle, winds up with a "!" cue, lunges into the attack pose for volleys and eruptions, curls into his rock-ball defence form to roll through his charge and while his Aegis is up, flares into his burst form for shockwaves, meteors and spirals, turns icy when Frozen, and collapses when his shield breaks or he's defeated.
 - **Attacks:** fireball volleys, a telegraphed charge that leaves fire, eruptions, and shockwave rings you can dash through. Phase II adds a meteor rain and a bullet spiral.
