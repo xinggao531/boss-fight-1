@@ -5,7 +5,7 @@ A Genshin Impact–inspired boss fight in one HTML file. You lead a party of two
 - **Yukina, the Frostbloom Maiden** (Cryo): ice shards, Frostbloom (E) and Eternal Winter Waltz (Q).
 - **Mizuha** (Hydro): water orbs, Tide Sprite (E, a water koi that keeps attacking for 6s even after you switch out) and Tidal Lullaby (Q, heals the whole party, then rains healing for 5s).
 
-Open `index.html` in a browser to play. There is no build step.
+Character art (the two in-battle sprites and the two Elemental Burst poses) is embedded in `index.html` as WebP data. Open `index.html` in a browser to play. There is no build step.
 
 ## Controls
 
