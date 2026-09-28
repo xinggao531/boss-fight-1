@@ -908,8 +908,8 @@ function fireball(x, y, ang, sp, r, dmg) {
   sp *= D().speed;
   S.foes.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: r || 13, dmg: dmg || 90, life: 5 });
 }
-const SPIRAL_T0 = 0.9, SPIRAL_T1 = 3.9, SPIRAL_ARMS = 3, SPIRAL_V = 230;
-const spiralOmega = () => (D().extra > 0 ? 0.72 : 0.58); // radians per second
+const SPIRAL_T0 = 0.9, SPIRAL_T1 = 3.9, SPIRAL_ARMS = 8, SPIRAL_V = 230;
+const spiralOmega = () => (D().extra > 0 ? 0.48 : 0.4); // radians per second: slow enough to run alongside a gap at the far edge
 // centre of gap k at distance r from him: streams trail behind the emitter by the time bullets took to get there
 function spiralGapAngle(B, k, r) {
   // bullets now at distance r left him at time te; the streams pointed where the emitter was then
@@ -1024,15 +1024,15 @@ function updBoss(dt) {
       break;
     }
     case 'spiral': {
-      // Inferno Spiral: three streams of fire spinning out from him. The gaps between streams are a third of
-      // the circle wide and the spin is slow enough to walk alongside near the edge; pale wedges mark the gaps.
+      // Inferno Spiral: eight streams of fire spinning out from him. The spin is slow enough to walk alongside
+      // a 45-degree gap, even near the edge; pale wedges mark the gaps.
       B.glow = 1;
       if (B.t < SPIRAL_T0) B.spin0 = B.spin;
       else if (B.t < SPIRAL_T1) {
         B.spin = B.spin0 + spiralOmega() * B.spinDir * (B.t - SPIRAL_T0);
         B.sub -= dt;
         if (B.sub <= 0) {
-          B.sub = 0.09;
+          B.sub = 0.11;
           for (let k = 0; k < SPIRAL_ARMS; k++) fireball(B.x, bodyY, B.spin + k * TAU / SPIRAL_ARMS, SPIRAL_V, 10, 70);
           sfx('fire');
         }
@@ -1908,7 +1908,7 @@ function drawGroundFX(g) {
   const B = S.B;
   if (B.state === 'spiral') {
     // pale wedges: the safe gaps between the streams, bent to match the streams' curve
-    const ox = B.x, oy = B.y - 70, half = (TAU / SPIRAL_ARMS) * 0.28;
+    const ox = B.x, oy = B.y - 70, half = (TAU / SPIRAL_ARMS) * 0.3;
     const a = (B.t < SPIRAL_T0 ? 0.32 + 0.14 * Math.sin(t * 14) : 0.2) * Math.min(1, B.t * 4, (SPIRAL_T1 + 2.4 - B.t) * 2);
     g.save();
     for (let k = 0; k < SPIRAL_ARMS; k++) {
