@@ -387,7 +387,7 @@ function newGame(mode) {
       invuln: 0, glow: 0, cdx: 1, cdy: 0, hitPlayer: false, spin: 0, last: '', reshield: false, dead: false, deathT: 0, trailT: 0, kick: 0, popT: 0, rollA: 0, pose: '' },
     shots: [], foes: [], hazards: [], rings: [], parts: [], texts: [], orbs: [], blooms: [],
     stats: { dmg: 0, maxHit: 0, melts: 0, taken: 0 },
-    party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 20, skillCd: 0, burstCd: 0, infuseT: 0 })),
+    party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 0, skillCd: 0, burstCd: 0, infuseT: 0 })),
     slashes: [], gusts: [],
     active: 0, sprite: null, healT: 0, tide: null, cutinChar: 0, ripples: []
   };
