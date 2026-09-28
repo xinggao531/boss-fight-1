@@ -719,7 +719,7 @@ function musicTick() {
   if (MUSIC.next < AC.currentTime - 0.05) MUSIC.next = AC.currentTime + 0.05; // after a hidden tab, don't burst-play the backlog
   const title = MUSIC.song === 'title', len = title ? TITLE_STEP : STEP;
   while (MUSIC.next < AC.currentTime + 0.25) { (title ? playTitleStep : playStep)(MUSIC.step, MUSIC.next); MUSIC.next += len; MUSIC.step++; }
-  const frozen = S.B && S.B.state === 'stun';
+  const frozen = S.B && S.B.state === 'stun' && S.B.stunKind === 'freeze';
   MUSIC.filt.frequency.setTargetAtTime(frozen ? 700 : S.cutin > 0 ? 2200 : S.mode === 'paused' ? 1200 : 16000, AC.currentTime, 0.12);
 }
 function sfx(k) {
@@ -979,7 +979,7 @@ function shieldBreak() {
   toState('stun'); B.stun = B.stunMax = 5.5; B.stunKind = 'break'; B.el = null; B.elT = 0;
   S.shake = 16; S.hitStop = 0.12;
   spray(B.x, B.y - 70, 60, { color: CRYO_C.concat(['#ffd27a']), smin: 150, smax: 520, shape: 'shard', lmin: 0.5, lmax: 1.2, zmax: 8, drag: 1.5 });
-  banner('Shield Broken', 'Pyrrhos is frozen solid', '#9fe3ff');
+  banner('Shield Broken', 'Pyrrhos is staggered: strike now', '#ffd27a');
   sfx('break');
 }
 function killBoss() {
@@ -1421,11 +1421,19 @@ function updBoss(dt) {
     }
     case 'stun': {
       B.stun -= dt;
-      if (Math.random() < 0.35) spray(B.x + rand(-110, 110), B.y - rand(10, 170), 1, { color: ['#ffffff', '#dff6ff'], ang: -Math.PI / 2, spread: 0.5, smin: 8, smax: 30, shape: 'flake', lmin: 0.8, lmax: 1.4, zmin: 2, zmax: 4 });
+      const iced = B.stunKind === 'freeze';
+      if (iced && Math.random() < 0.35) spray(B.x + rand(-110, 110), B.y - rand(10, 170), 1, { color: ['#ffffff', '#dff6ff'], ang: -Math.PI / 2, spread: 0.5, smin: 8, smax: 30, shape: 'flake', lmin: 0.8, lmax: 1.4, zmin: 2, zmax: 4 });
+      if (!iced && Math.random() < 0.3) spray(B.x + rand(-90, 90), B.y - rand(20, 120), 1, { color: ['#6b5a52', '#8a7a70', '#4a3c36'], ang: -Math.PI / 2, spread: 0.4, smin: 10, smax: 34, lmin: 0.8, lmax: 1.5, zmin: 3, zmax: 6, add: false });
       if (B.stun <= 0) {
-        // the ice shatters as he breaks free
-        spray(B.x, B.y - 80, 55, { color: CRYO_C.concat(['#ffffff']), smin: 160, smax: 460, up: 80, g: 700, shape: 'shard', lmin: 0.5, lmax: 1.0, zmin: 3, zmax: 8, drag: 1, add: false });
-        S.shake = Math.max(S.shake, 7); sfx('shatter');
+        if (iced) {
+          // the ice shatters as he breaks free
+          spray(B.x, B.y - 80, 55, { color: CRYO_C.concat(['#ffffff']), smin: 160, smax: 460, up: 80, g: 700, shape: 'shard', lmin: 0.5, lmax: 1.0, zmin: 3, zmax: 8, drag: 1, add: false });
+          S.shake = Math.max(S.shake, 7); sfx('shatter');
+        } else {
+          // he heaves himself back up, shaking off embers
+          spray(B.x, B.y - 60, 30, { color: PYRO_C, smin: 100, smax: 300, up: 60, lmin: 0.4, lmax: 0.8, zmax: 5 });
+          S.shake = Math.max(S.shake, 5);
+        }
         toState('idle'); B.idleDur = 0.3;
       }
       break;
@@ -1856,16 +1864,26 @@ function drawBossSprite(g, B, t) {
   g.scale(face * sx, sy);
   g.drawImage(im, -w / 2, -h, w, h);
   if (frozen) { g.globalAlpha = alpha * 0.62; g.drawImage(tinted(key, '#a8e2ff'), -w / 2, -h, w, h); }
-  else if (key === 'boss_down' && stun) { g.globalAlpha = alpha * 0.35; g.drawImage(tinted(key, '#bfe9ff'), -w / 2, -h, w, h); }
+  else if (key === 'boss_down' && stun) { g.globalAlpha = alpha * 0.3; g.drawImage(tinted(key, '#2a1a14'), -w / 2, -h, w, h); }
   if (B.hitFlash > 0) { g.globalAlpha = alpha * Math.min(0.7, B.hitFlash * 8); g.drawImage(tinted(key, '#ffffff'), -w / 2, -h, w, h); }
   g.restore();
   if (fireK > 0) bossFlames(g, BOSS_FLAMES[key], 1, key, place, h, t, fireK);
   const cy = B.y - h * 0.45;
-  // encasing ice while frozen or shield-broken: grows up from the ground, cracks just before he breaks free
-  if (stun) {
+  // encasing ice while frozen: grows up from the ground, cracks just before he breaks free
+  if (frozen) {
     const grow = Math.min(1, (B.stunMax - B.stun) / 0.25), crack = Math.max(0, 1 - B.stun / 0.7);
     const jx = crack > 0 ? rand(-1.5, 1.5) * crack : 0;
     drawIceBlock(g, B.x + jx, B.y + 8, w * 1.08, h * 1.12, grow, t, crack);
+  } else if (stun && !B.dead) {
+    // staggered: dazed embers circling his head
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) {
+      const a = t * 3.2 + i * TAU / 4, ex = B.x + Math.cos(a) * w * 0.28, ey = B.y - h * 0.98 + Math.sin(a) * 12;
+      const eg = g.createRadialGradient(ex, ey, 0, ex, ey, 11);
+      eg.addColorStop(0, 'rgba(255,230,160,0.95)'); eg.addColorStop(1, 'rgba(255,120,40,0)');
+      g.fillStyle = eg; g.beginPath(); g.arc(ex, ey, 11, 0, TAU); g.fill();
+    }
+    g.restore();
   }
   // Blazing Aegis bubble
   if (B.shield > 0 && !B.dead) {
@@ -2741,8 +2759,9 @@ function drawHUD(g) {
     g.fillText('Blazing Aegis · ' + Math.ceil(B.shield) + ' Cryo/Hydro hits to break · HP protected', CX, by + 34);
   }
   if (B.state === 'stun' && !B.dead) {
-    g.font = `800 12px ${FONT_U}`; g.textAlign = 'center'; g.fillStyle = '#bfe9ff';
-    g.fillText('Frozen · ' + B.stun.toFixed(1) + 's', CX, by + 34);
+    const fz = B.stunKind === 'freeze';
+    g.font = `800 12px ${FONT_U}`; g.textAlign = 'center'; g.fillStyle = fz ? '#bfe9ff' : '#ffd27a';
+    g.fillText((fz ? 'Frozen · ' : 'Staggered · ') + B.stun.toFixed(1) + 's', CX, by + 34);
   }
   // timer
   g.textAlign = 'left'; g.font = `800 14px ${FONT_U}`; g.fillStyle = '#bfe9ff';
