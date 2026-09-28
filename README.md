@@ -9,7 +9,7 @@ Character and boss art (in-battle sprites, Elemental Burst poses, the boss's nor
 
 ## Story
 
-Far beneath the islands lies Magma Hollow, where the fire spirit Pyrrhos agreed five centuries ago to sleep and keep the island's fire asleep with him. This summer the offerings stopped, the sea boiled, and the Scorched Sovereign woke behind a shield of living flame. Ayaka, with her blade and fan, and Kokomi, priestess of the tides, descend to freeze him back to sleep.
+Far beneath the islands lies Magma Hollow, where the fire spirit Pyrrhos agreed five centuries ago to sleep and keep the island's fire asleep with him. This summer the offerings stopped, the sea boiled, and the Scorched Sovereign woke behind a shield of living flame. Ayaka, with her blade and fan, and Kokomi, priestess of the tides, set out on a mission to put him back to sleep.
 
 The cover opens with the key art, difficulty picker and a Begin button; scroll down for the prologue, a detailed guide to each heroine's skills, the rules (reactions, armour, the Aegis, switching) and a field guide to Pyrrhos's attacks.
 
