@@ -94,10 +94,21 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
 .stats div{padding:10px 12px;border-top:1px solid rgba(191,233,255,.15)}
 .stats span{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .stats strong{font:800 20px/1.3 var(--ui);font-variant-numeric:tabular-nums;color:var(--ink)}
-#sound{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:4;appearance:none;
-  border:1px solid rgba(191,233,255,.3);background:rgba(10,18,36,.6);color:var(--glacier);font:700 12px var(--ui);
-  padding:6px 10px;border-radius:999px;cursor:pointer}
-#sound:focus-visible{outline:2px solid var(--cryo)}
+/* sound controls, above every screen */
+.audio{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));z-index:20;display:flex;gap:6px;align-items:flex-start}
+.audio>button{appearance:none;display:flex;align-items:center;gap:6px;border:1px solid rgba(230,198,122,.45);background:rgba(12,8,6,.72);
+  color:#f3e7c7;font:700 12px var(--ui);padding:6px 10px;border-radius:999px;cursor:pointer;backdrop-filter:blur(4px)}
+.audio>button:hover{border-color:var(--gold);color:#fff}
+.audio>button:focus-visible{outline:2px solid var(--cryo);outline-offset:2px}
+.audio kbd{font-size:10px;padding:0 5px;min-width:0;border-bottom-width:2px}
+#sound .cross{display:none} #sound[aria-pressed="true"] .cross{display:inline} #sound[aria-pressed="true"] .wave{display:none}
+#sound[aria-pressed="true"]{color:#ff9a6b;border-color:rgba(255,138,74,.6)}
+.vol-panel{position:absolute;top:calc(100% + 6px);right:0;width:220px;padding:12px 14px;border-radius:10px;background:rgba(14,9,7,.94);
+  border:1px solid rgba(230,198,122,.4);box-shadow:0 14px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:6px}
+.vol-panel label{display:flex;justify-content:space-between;font:700 12px var(--ui);color:#f3e7c7}
+.vol-panel output{color:var(--gold);font-variant-numeric:tabular-nums}
+.vol-panel input{width:100%;accent-color:var(--gold);margin:0 0 6px}
+.vol-panel p{margin:2px 0 0;font-size:11.5px;color:var(--muted)}
 #touch{position:fixed;inset:0;z-index:3;pointer-events:none}
 #stick{position:absolute;left:calc(18px + env(safe-area-inset-left,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));
   width:130px;height:130px;border-radius:50%;border:2px solid rgba(191,233,255,.3);background:rgba(10,18,36,.35);pointer-events:auto;touch-action:none}
@@ -243,7 +254,20 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
 </head>
 <body>
 <canvas id="game" aria-label="Boss fight arena"></canvas>
-<button id="sound" type="button">Sound: On</button>
+<div class="audio" id="audio">
+  <button id="sound" type="button" aria-pressed="false" title="Mute or unmute all sound (M)">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="cross" d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <span id="soundLabel">Mute</span><kbd>M</kbd>
+  </button>
+  <button id="volBtn" type="button" aria-expanded="false" aria-controls="volPanel" title="Adjust music and effects volume">Volume</button>
+  <div class="vol-panel" id="volPanel" hidden>
+    <label for="musicVol"><span>Music</span><output id="musicVolTxt" for="musicVol">80</output></label>
+    <input type="range" id="musicVol" min="0" max="100" step="5" value="80">
+    <label for="sfxVol"><span>Effects</span><output id="sfxVolTxt" for="sfxVol">80</output></label>
+    <input type="range" id="sfxVol" min="0" max="100" step="5" value="80">
+    <p>Press <kbd>M</kbd> any time to mute or unmute.</p>
+  </div>
+</div>
 
 <div id="touch" hidden>
   <div id="stick"><div id="knob"></div></div>
@@ -287,9 +311,9 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
         <ul class="keystrip" aria-label="Controls">
           <li><kbd>WASD</kbd> Move</li><li><kbd>Click</kbd><kbd>J</kbd> Attack</li><li><kbd>1</kbd><kbd>2</kbd> Switch</li>
           <li><kbd>E</kbd> Skill</li><li><kbd>Q</kbd> Burst</li><li><kbd>Space</kbd> Jump</li>
-          <li><kbd>Shift</kbd> Run</li><li><kbd>C</kbd> Dash</li><li><kbd>P</kbd> Pause</li>
+          <li><kbd>Shift</kbd> Run</li><li><kbd>C</kbd> Dash</li><li><kbd>P</kbd> Pause</li><li><kbd>M</kbd> Mute</li>
         </ul>
-        <p class="note">On a phone, turn it sideways. Touch controls appear automatically. Music begins with your first tap or key press.</p>
+        <p class="note">On a phone, turn it sideways. Touch controls appear automatically. Music begins with your first tap or key press; press <kbd>M</kbd> to mute, or use the sound controls at the top right.</p>
       </div>
     </div>
     <button class="scroll-cue" type="button" data-go="story" aria-label="Scroll to the story"><span>The Tale</span><i aria-hidden="true"></i></button>
@@ -515,13 +539,28 @@ function resize() {
 addEventListener('resize', resize); resize();
 
 /* ---------------- audio ---------------- */
-let AC = null, master = null, muted = false, noiseBuf = null;
+let AC = null, master = null, sfxOut = null, musicOut = null, muted = false, noiseBuf = null;
+// volume settings (0-1), remembered in this browser
+const VOL = { music: 0.8, sfx: 0.8 };
+try { const v = JSON.parse(localStorage.getItem('fw-audio') || '{}'); if (v.music >= 0) VOL.music = v.music; if (v.sfx >= 0) VOL.sfx = v.sfx; muted = !!v.muted; } catch (e) {}
+const MUSIC_MAX = 0.6, SFX_MAX = 0.4;
+function applyVolumes() {
+  if (!AC) return;
+  master.gain.setTargetAtTime(muted ? 0 : 1, AC.currentTime, 0.05);
+  musicOut.gain.setTargetAtTime(MUSIC_MAX * VOL.music, AC.currentTime, 0.05);
+  sfxOut.gain.setTargetAtTime(SFX_MAX * VOL.sfx, AC.currentTime, 0.05);
+}
+function saveAudio() { try { localStorage.setItem('fw-audio', JSON.stringify({ music: VOL.music, sfx: VOL.sfx, muted })); } catch (e) {} }
 const lastSfx = {};
 function initAudio() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
-    master = AC.createGain(); master.gain.value = muted ? 0 : 0.32; master.connect(AC.destination);
+    const lim = AC.createDynamicsCompressor(); // keeps loud moments from distorting
+    lim.threshold.value = -8; lim.knee.value = 6; lim.ratio.value = 6; lim.attack.value = 0.003; lim.release.value = 0.2;
+    master = AC.createGain(); master.gain.value = muted ? 0 : 1; master.connect(lim).connect(AC.destination);
+    sfxOut = AC.createGain(); sfxOut.gain.value = SFX_MAX * VOL.sfx; sfxOut.connect(master);
+    musicOut = AC.createGain(); musicOut.gain.value = MUSIC_MAX * VOL.music; musicOut.connect(master);
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   } catch (e) { AC = null; }
@@ -532,13 +571,13 @@ function tone(f, dur, type, vol, slide, delay = 0) {
   if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, f * slide), t0 + dur);
   g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g).connect(master); o.start(t0); o.stop(t0 + dur + 0.05);
+  o.connect(g).connect(sfxOut); o.start(t0); o.stop(t0 + dur + 0.05);
 }
 function noise(dur, vol, freq, type = 'lowpass') {
   const t0 = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
   s.buffer = noiseBuf; f.type = type; f.frequency.value = freq;
   g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  s.connect(f).connect(g).connect(master); s.start(t0); s.stop(t0 + dur + 0.05);
+  s.connect(f).connect(g).connect(sfxOut); s.start(t0); s.stop(t0 + dur + 0.05);
 }
 // filtered noise with an optional sweep (f0 -> f1), resonance, delay and swell-in
 function nz(dur, vol, f0, f1, type, q, delay, attack) {
@@ -546,7 +585,7 @@ function nz(dur, vol, f0, f1, type, q, delay, attack) {
   s.buffer = noiseBuf; s.loop = true; f.type = type || 'bandpass'; f.Q.value = q || 1;
   f.frequency.setValueAtTime(f0, t0); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
   g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + (attack || 0.005)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  s.connect(f).connect(g).connect(master); s.start(t0, Math.random() * 0.5); s.stop(t0 + dur + 0.05);
+  s.connect(f).connect(g).connect(sfxOut); s.start(t0, Math.random() * 0.5); s.stop(t0 + dur + 0.05);
 }
 /* ---------------- music: an original battle theme, played live ----------------
    Taiko, koto, bass, string pads and (in Phase II) a shakuhachi-style flute over a dark D-minor loop at 132 BPM.
@@ -662,12 +701,12 @@ function musicStart(song) {
   if (!MUSIC.bus) {
     MUSIC.filt = AC.createBiquadFilter(); MUSIC.filt.type = 'lowpass'; MUSIC.filt.frequency.value = 16000;
     MUSIC.bus = AC.createGain(); MUSIC.bus.gain.value = 0.0001;
-    MUSIC.bus.connect(MUSIC.filt).connect(master);
+    MUSIC.bus.connect(MUSIC.filt).connect(musicOut);
   }
   MUSIC.song = song || 'battle';
   MUSIC.on = true; MUSIC.step = 0; MUSIC.next = AC.currentTime + 0.15;
   MUSIC.bus.gain.cancelScheduledValues(AC.currentTime);
-  MUSIC.bus.gain.setTargetAtTime(MUSIC.song === 'title' ? 0.85 : 0.9, AC.currentTime, 0.6);
+  MUSIC.bus.gain.setTargetAtTime(MUSIC.song === 'title' ? 1 : 0.9, AC.currentTime, 0.6);
 }
 function musicStop(fade) {
   if (!MUSIC.bus) return;
@@ -3025,11 +3064,24 @@ function frame(now) {
 /* ---------------- screens ---------------- */
 const titleEl = document.getElementById('title'), endEl = document.getElementById('end');
 const soundBtn = document.getElementById('sound');
-function toggleMute() {
-  muted = !muted; soundBtn.textContent = muted ? 'Sound: Off' : 'Sound: On';
-  if (master) master.gain.setTargetAtTime(muted ? 0 : 0.32, AC.currentTime, 0.05);
+function syncAudioUI() {
+  soundBtn.setAttribute('aria-pressed', String(muted));
+  document.getElementById('soundLabel').textContent = muted ? 'Unmute' : 'Mute';
+  for (const k of ['music', 'sfx']) {
+    const v = Math.round(VOL[k] * 100);
+    document.getElementById(k + 'Vol').value = v; document.getElementById(k + 'VolTxt').textContent = v;
+  }
 }
+function toggleMute() { muted = !muted; applyVolumes(); syncAudioUI(); saveAudio(); }
 soundBtn.addEventListener('click', () => { initAudio(); toggleMute(); soundBtn.blur(); });
+const volBtn = document.getElementById('volBtn'), volPanel = document.getElementById('volPanel');
+volBtn.addEventListener('click', () => { volPanel.hidden = !volPanel.hidden; volBtn.setAttribute('aria-expanded', String(!volPanel.hidden)); initAudio(); });
+for (const k of ['music', 'sfx']) document.getElementById(k + 'Vol').addEventListener('input', e => {
+  VOL[k] = e.target.value / 100; initAudio(); applyVolumes(); syncAudioUI(); saveAudio();
+  if (k === 'sfx') sfx('pop'); // a sample so you can hear the level
+});
+addEventListener('pointerdown', e => { if (!volPanel.hidden && !e.target.closest('#audio')) { volPanel.hidden = true; volBtn.setAttribute('aria-expanded', 'false'); } });
+syncAudioUI();
 function startGame() {
   initAudio();
   newGame('play');
