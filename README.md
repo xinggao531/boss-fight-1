@@ -1,5 +1,9 @@
 # Lullaby for a Fire Spirit
 
+**[Play it in your browser →](https://xinggao531.github.io/boss-fight-1/)**
+
+![Cover of Lullaby for a Fire Spirit: Ayaka and Kokomi facing the fire spirit Pyrrhos in a lava cave](docs/cover.jpg)
+
 A Genshin Impact–inspired boss fight in one HTML file. You lead a party of two against **Pyrrhos, the Scorched Sovereign**, a Pyro boss:
 
 - **Ayaka**, Shirasagi Himegimi of the Kamisato Clan (Cryo): a melee sword fighter. Her slashes are physical and only land within reach of the boss (she steps in a little when close). Frostfan Gale (E, 12s cooldown) sends an icy gust from her fan into the boss and frost-infuses her sword for 6s, so slashes apply Cryo. Eternal Winter Waltz (Q, 16s cooldown, needs 60 energy) is 3s of blizzard around her that hits hard, blows away fireballs, and makes her sword 2.2x stronger with longer reach.
