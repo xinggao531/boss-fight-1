@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Frostbloom Waltz</title>
+<title>Lullaby for a Fire Spirit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Nunito:ital,wght@0,600;0,700;0,800;1,800&display=swap">
@@ -79,7 +79,7 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
 .logo-top{font:900 clamp(42px,4.9vw,70px)/.95 var(--display);letter-spacing:.01em;
   background:linear-gradient(180deg,#ffffff 10%,var(--glacier) 55%,var(--cryo) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 22px rgba(111,211,247,.35))}
-.logo-sub{display:flex;align-items:center;gap:14px;margin-top:8px;font:700 clamp(16px,1.8vw,22px)/1 var(--display);letter-spacing:.6em;color:var(--gold);text-indent:.6em}
+.logo-sub{display:flex;align-items:center;gap:14px;margin-top:10px;font:700 clamp(15px,1.7vw,21px)/1 var(--display);letter-spacing:.3em;color:var(--gold);text-indent:.3em;white-space:nowrap}
 .logo-sub::before,.logo-sub::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
 .logo-sub::after{background:linear-gradient(90deg,var(--gold),transparent)}
 .tagline{margin:0;font:italic 500 19px/1.45 "Cormorant Garamond",Georgia,serif;color:#eadbcb;max-width:38ch}
@@ -150,7 +150,7 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
 .dos-blurb{margin:0;color:#c9d4e6;font-size:14px;line-height:1.55}
 .skills{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
 .skills>li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;padding:14px;border-radius:8px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
-.skey{display:flex;justify-content:center;align-items:flex-start;padding-top:2px}
+.skey{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
 .skey kbd{height:auto;align-self:flex-start}
 .skey kbd{min-width:40px;font-size:12px;border-color:var(--acc);color:#fff}
 .skills h4{margin:0 0 6px;font:700 15px var(--display);color:#fff}
@@ -221,12 +221,12 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
       <canvas id="portrait" width="900" height="840" aria-label="Ayaka and Kokomi facing Pyrrhos in his lava cave"></canvas>
       <div class="cover-copy">
         <p class="eyebrow">Domain Challenge · Magma Hollow</p>
-        <h1 class="logo"><span class="logo-top">Frostbloom</span><span class="logo-sub">Waltz</span></h1>
+        <h1 class="logo"><span class="logo-top">Lullaby</span><span class="logo-sub">for a Fire Spirit</span></h1>
         <p class="tagline">Beneath a boiling sea, a fire spirit has broken his five-hundred-year pact. Frost and tide descend to put him back to sleep.</p>
         <div class="orn" aria-hidden="true"><span></span></div>
         <ul class="party">
-          <li class="chip is-cryo"><img data-spr="yukina" alt=""><div><b>Ayaka</b><span>Cryo · sword and fan</span></div></li>
-          <li class="chip is-hydro"><img data-spr="mizuha" alt=""><div><b>Kokomi</b><span>Hydro · bubbles and healing</span></div></li>
+          <li class="chip is-cryo"><img data-spr="yukina" alt=""><div><b>Ayaka</b><span>Shirasagi Himegimi of the Kamisato Clan</span></div></li>
+          <li class="chip is-hydro"><img data-spr="mizuha" alt=""><div><b>Kokomi</b><span>Divine Priestess of Watatsumi Island</span></div></li>
         </ul>
         <fieldset class="diff">
           <legend>Difficulty</legend>
@@ -242,7 +242,7 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
           <button class="linkbtn" type="button" data-go="story">Story &amp; skills ↓</button>
         </div>
         <ul class="keystrip" aria-label="Controls">
-          <li><kbd>WASD</kbd> Move</li><li><kbd>Click</kbd> Attack</li><li><kbd>1</kbd><kbd>2</kbd> Switch</li>
+          <li><kbd>WASD</kbd> Move</li><li><kbd>Click</kbd><kbd>J</kbd> Attack</li><li><kbd>1</kbd><kbd>2</kbd> Switch</li>
           <li><kbd>E</kbd> Skill</li><li><kbd>Q</kbd> Burst</li><li><kbd>Space</kbd> Jump</li>
           <li><kbd>Shift</kbd> Run</li><li><kbd>C</kbd> Dash</li><li><kbd>P</kbd> Pause</li>
         </ul>
@@ -290,13 +290,13 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
           <div>
             <p class="dos-el"><span class="el-dot"></span>Cryo · Melee</p>
             <h3>Ayaka</h3>
-            <p class="dos-epi">Blade of the Frostfan</p>
+            <p class="dos-epi">Shirasagi Himegimi, daughter of Inazuma's Kamisato Clan and the Yashiro Commission</p>
             <ul class="dos-stats"><li><b>1,200</b> HP</li><li><b>60</b> energy burst</li><li>Key <kbd>1</kbd></li></ul>
           </div>
         </header>
         <p class="dos-blurb">A swordswoman who fights up close. Her plain slashes are physical, so they need her fan's frost to hurt the Aegis and to set up Freeze.</p>
         <ul class="skills">
-          <li><span class="skey"><kbd>Click</kbd></span><div>
+          <li><span class="skey"><kbd>Click</kbd><kbd>J</kbd></span><div>
             <h4>Normal Attack · Frostfan Swordplay</h4>
             <p>Three quick slashes and a spinning finish. Hits only land within reach of Pyrrhos; if he is just out of range she takes a short step in, and further away you will see "Too far". Every hit charges her burst.</p>
             <ul class="facts"><li>88 / 100 / 112 / 170 damage</li><li>Physical</li><li>Blocked by the Aegis</li></ul>
@@ -320,13 +320,13 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
           <div>
             <p class="dos-el"><span class="el-dot"></span>Hydro · Ranged support</p>
             <h3>Kokomi</h3>
-            <p class="dos-epi">Priestess of the Tides</p>
+            <p class="dos-epi">Divine Priestess of Watatsumi Island, who leads its people from Sangonomiya Shrine</p>
             <ul class="dos-stats"><li><b>1,400</b> HP</li><li><b>70</b> energy burst</li><li>Key <kbd>2</kbd></li></ul>
           </div>
         </header>
         <p class="dos-blurb">A healer who fights from anywhere in the cave. Her hits are light, but every one of them carries water, which makes her the fastest way through the Aegis.</p>
         <ul class="skills">
-          <li><span class="skey"><kbd>Click</kbd></span><div>
+          <li><span class="skey"><kbd>Click</kbd><kbd>J</kbd></span><div>
             <h4>Normal Attack · Bubble Stream</h4>
             <p>Two drifting bubbles per attack, four on the finish, that float to Pyrrhos from any distance and pop against him. Each one applies Hydro and takes a point off the Aegis.</p>
             <ul class="facts"><li>15 Hydro per bubble</li><li>Any range</li><li>Fastest Aegis breaker</li></ul>
@@ -426,7 +426,7 @@ const SPRITE_DATA = {
 <script>
 'use strict';
 /* ============================================================
-   Frostbloom Waltz — a Cryo boss fight
+   Lullaby for a Fire Spirit — a Cryo and Hydro boss fight
    World is 1280x720, scaled to fit the window.
    ============================================================ */
 const W = 1280, H = 720, CX = 640, CY = 410, RX = 570, RY = 270, TAU = Math.PI * 2;
