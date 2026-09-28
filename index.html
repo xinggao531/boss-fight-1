@@ -10,7 +10,7 @@
 <style>
 :root{
   color-scheme:dark;
-  --abyss:#070b16;
+  --abyss:#0b0605;
   --panel:rgba(10,18,36,.86);
   --glacier:#bfe9ff;
   --cryo:#6fd3f7;
@@ -29,7 +29,7 @@ body{background:var(--abyss);color:var(--ink);font-family:var(--ui);overflow:hid
 #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:default}
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));
-  background:radial-gradient(ellipse at 50% 40%,rgba(7,11,22,.55),rgba(7,11,22,.92));
+  background:radial-gradient(ellipse at 50% 40%,rgba(14,6,4,.5),rgba(10,4,3,.9));
   overflow-y:auto;z-index:5}
 .panel{display:grid;grid-template-columns:minmax(0,300px) minmax(0,440px);gap:28px;align-items:center;
   max-width:800px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;
@@ -105,7 +105,7 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
   <div class="panel">
     <canvas id="portrait" width="600" height="800" aria-label="Yukina and Mizuha"></canvas>
     <div>
-      <p class="eyebrow">Domain Challenge · Frostfire Sanctum</p>
+      <p class="eyebrow">Domain Challenge · Magma Hollow</p>
       <h1>Frostbloom Waltz</h1>
       <p class="lede"><b>Yukina</b> (<span class="cryo">Cryo</span>) and <b>Mizuha</b> (<span class="hydro">Hydro</span>) face
         <b>Pyrrhos, the Scorched Sovereign</b>. Switch between them to mix elements: Cryo on Hydro, or Hydro on Cryo,
@@ -861,8 +861,8 @@ function updFoes(dt) {
 }
 
 /* ---------------- particles & ambient ---------------- */
-const snow = Array.from({ length: 110 }, () => ({ x: rand(0, W), y: rand(0, H), s: rand(0.6, 2.4), v: rand(18, 55), p: rand(0, TAU) }));
-const embers = Array.from({ length: 40 }, () => ({ x: rand(0, W), y: rand(560, 740), v: rand(20, 60), life: rand(0, 1) }));
+const snow = Array.from({ length: 90 }, () => ({ x: rand(0, W), y: rand(0, H), s: rand(0.6, 2.2), v: rand(10, 32), p: rand(0, TAU), hot: Math.random() < 0.25 })); // drifting ash
+const embers = Array.from({ length: 70 }, () => ({ x: rand(0, W), y: rand(200, 740), v: rand(25, 70), life: rand(0, 1) }));
 function updParts(dt) {
   for (const p of S.parts) {
     p.life -= dt; p.vy += p.g * dt;
@@ -875,7 +875,11 @@ function updParts(dt) {
 }
 function updAmbient(dt) {
   for (const f of snow) { f.y += f.v * dt; f.x += Math.sin(S.anim * 0.8 + f.p) * 12 * dt; if (f.y > H + 5) { f.y = -5; f.x = rand(0, W); } }
-  for (const e of embers) { e.life += dt * 0.35; e.y -= e.v * dt; if (e.life > 1) { e.life = 0; e.x = rand(0, W); e.y = rand(640, 740); } }
+  for (const e of embers) {
+    e.life += dt * 0.35; e.y -= e.v * dt;
+    if (e.life > 1) { e.life = 0; do { e.x = rand(0, W); e.y = rand(LAVA_TOP + 10, H); } while (!onLava(e.x, e.y)); }
+  }
+  updLava(dt);
 }
 
 /* ---------------- drawing: characters ---------------- */
@@ -1386,78 +1390,217 @@ function crystal(g, x, y, h, w, lean) {
   g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 1;
   g.beginPath(); g.moveTo(x + lean, y - h); g.lineTo(x, y); g.stroke();
 }
+// ---- Magma Hollow: Pyrrhos's lava cave ----
+const LAVA_TOP = 168;            // where the lava lake meets the back wall
+const fore = document.createElement('canvas');
+fore.width = W * 2; fore.height = H * 2;
+function onLava(x, y) { return y > LAVA_TOP + 6 && !inArena(x, y + 30, 1.04); }
+function jagged(g, x0, x1, yFn, step) { for (let x = x0; x <= x1 + step; x += step) g.lineTo(Math.min(x, x1), yFn(x)); }
+function stalactite(g, x, w, h, col) {
+  g.fillStyle = col;
+  g.beginPath(); g.moveTo(x - w, 0); g.lineTo(x - w * 0.55, h * 0.45); g.lineTo(x - w * 0.15, h * 0.8); g.lineTo(x, h);
+  g.lineTo(x + w * 0.2, h * 0.75); g.lineTo(x + w * 0.6, h * 0.4); g.lineTo(x + w, 0); g.closePath(); g.fill();
+}
+function stalagmite(g, x, base, w, h, col, glow) {
+  g.fillStyle = col;
+  g.beginPath(); g.moveTo(x - w, base); g.lineTo(x - w * 0.5, base - h * 0.5); g.lineTo(x - w * 0.1, base - h); g.lineTo(x + w * 0.25, base - h * 0.6); g.lineTo(x + w, base); g.closePath(); g.fill();
+  if (glow) { g.strokeStyle = 'rgba(255,120,40,0.35)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x - w * 0.7, base - 2); g.lineTo(x + w * 0.7, base - 2); g.stroke(); }
+}
 function buildFloor() {
   const g = floor.getContext('2d');
   g.setTransform(2, 0, 0, 2, 0, 0);
+  // cave darkness, warming toward the lava
   let gr = g.createLinearGradient(0, 0, 0, H);
-  gr.addColorStop(0, '#0a1024'); gr.addColorStop(0.4, '#130e22'); gr.addColorStop(1, '#3a1409');
+  gr.addColorStop(0, '#0b0605'); gr.addColorStop(0.25, '#1a0c08'); gr.addColorStop(1, '#2a0e06');
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
-  // stars
-  for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(220,235,255,${rand(0.2, 0.7)})`; g.fillRect(rand(0, W), rand(0, 130), rand(0.6, 1.6), rand(0.6, 1.6)); }
-  // distant ice spires
-  for (let i = 0; i < 22; i++) {
-    const x = i * 62 + rand(-20, 20), h = rand(50, 150);
-    g.fillStyle = i % 2 ? '#111a35' : '#0f162d';
-    g.beginPath(); g.moveTo(x - 34, 170); g.lineTo(x + rand(-8, 8), 170 - h); g.lineTo(x + 34, 170); g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(120,200,255,0.12)'; g.lineWidth = 1; g.stroke();
+  // back wall: layered rock strata
+  const strata = [['#160b08', 30, 26], ['#1e0f0a', 70, 22], ['#26140d', 112, 18], ['#2e1810', 146, 12]];
+  for (const [col, base, amp] of strata) {
+    const ph = rand(0, 10);
+    g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
+    g.lineTo(0, base);
+    jagged(g, 0, W, x => base + Math.sin(x * 0.013 + ph) * amp * 0.6 + Math.sin(x * 0.047 + ph * 2) * amp * 0.4 + rand(-3, 3), 18);
+    g.lineTo(W, H); g.closePath(); g.fill();
   }
-  // lava sea glow
-  gr = g.createRadialGradient(CX, H + 120, 60, CX, H + 120, 760);
-  gr.addColorStop(0, 'rgba(255,120,40,0.7)'); gr.addColorStop(0.6, 'rgba(200,50,20,0.25)'); gr.addColorStop(1, 'rgba(120,20,10,0)');
-  g.fillStyle = gr; g.fillRect(0, 0, W, H);
-  // platform side wall
-  g.fillStyle = '#12131f'; ell(g, CX, CY + 38, RX, RY); g.fill();
-  gr = g.createLinearGradient(0, CY, 0, CY + RY + 40);
-  gr.addColorStop(0, 'rgba(255,110,40,0)'); gr.addColorStop(1, 'rgba(255,110,40,0.35)');
-  g.fillStyle = gr; ell(g, CX, CY + 38, RX, RY); g.fill();
+  // glowing magma veins in the wall
+  g.save(); g.strokeStyle = 'rgba(255,110,40,0.55)'; g.shadowColor = '#ff6a2a'; g.shadowBlur = 10; g.lineWidth = 2; g.lineJoin = 'round';
+  for (let i = 0; i < 14; i++) {
+    let x = rand(20, W - 20), y = rand(20, 140), a = rand(0.6, 2.4);
+    g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 6; k++) { a += rand(-0.7, 0.7); x += Math.cos(a) * 16; y += Math.abs(Math.sin(a)) * 12; g.lineTo(x, y); }
+    g.stroke();
+  }
+  g.restore();
+  // lava lake
+  gr = g.createLinearGradient(0, LAVA_TOP, 0, H);
+  gr.addColorStop(0, '#8a1c06'); gr.addColorStop(0.35, '#c83a0c'); gr.addColorStop(1, '#ff7a1a');
+  g.fillStyle = gr; g.fillRect(0, LAVA_TOP, W, H - LAVA_TOP);
+  // cooled crust plates floating on the lava
+  for (let i = 0; i < 70; i++) {
+    const x = rand(0, W), y = rand(LAVA_TOP + 4, H);
+    if (inArena(x, y + 30, 1.02)) continue;
+    const r = rand(8, 30) * (0.5 + (y - LAVA_TOP) / H);
+    g.fillStyle = `rgba(40,14,8,${rand(0.55, 0.85)})`;
+    g.beginPath();
+    for (let k = 0; k < 7; k++) { const a = k / 7 * TAU, rr = r * rand(0.6, 1.1); g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.45); }
+    g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(255,190,80,0.5)'; g.lineWidth = 1; g.stroke();
+  }
+  // lava meets the wall: bright seam and stalagmites standing in it
+  g.save(); g.shadowColor = '#ffb040'; g.shadowBlur = 14; g.strokeStyle = 'rgba(255,190,90,0.8)'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(0, LAVA_TOP); g.lineTo(W, LAVA_TOP); g.stroke(); g.restore();
+  for (let i = 0; i < 26; i++) {
+    const x = i * 50 + rand(-15, 15);
+    if (x > 420 && x < 860) continue; // keep the view behind the boss open
+    stalagmite(g, x, LAVA_TOP + rand(4, 16), rand(12, 26), rand(40, 110), i % 2 ? '#1c0e09' : '#241209', true);
+  }
+  // basalt platform: side wall with lava lapping at its foot
+  g.fillStyle = '#140b09'; ell(g, CX, CY + 40, RX + 4, RY + 4); g.fill();
+  gr = g.createLinearGradient(0, CY, 0, CY + RY + 44);
+  gr.addColorStop(0, 'rgba(255,110,40,0)'); gr.addColorStop(1, 'rgba(255,120,40,0.45)');
+  g.fillStyle = gr; ell(g, CX, CY + 40, RX + 4, RY + 4); g.fill();
   // platform top
   gr = g.createRadialGradient(CX, CY - 30, 30, CX, CY, RX);
-  gr.addColorStop(0, '#36425f'); gr.addColorStop(0.55, '#252d48'); gr.addColorStop(1, '#171c31');
+  gr.addColorStop(0, '#3d2c27'); gr.addColorStop(0.6, '#2b1e1a'); gr.addColorStop(1, '#1d1311');
   g.fillStyle = gr; ell(g, CX, CY, RX, RY); g.fill();
   g.save(); ell(g, CX, CY, RX, RY); g.clip();
-  g.strokeStyle = 'rgba(190,225,255,0.07)'; g.lineWidth = 1.5;
-  for (let k = 1; k <= 6; k++) { ell(g, CX, CY, RX * k / 6.4, RY * k / 6.4); g.stroke(); }
-  for (let i = 0; i < 28; i++) {
-    const a = i / 28 * TAU;
-    g.beginPath(); g.moveTo(CX + Math.cos(a) * RX * 0.16, CY + Math.sin(a) * RY * 0.16); g.lineTo(CX + Math.cos(a) * RX, CY + Math.sin(a) * RY); g.stroke();
-  }
-  for (let i = 0; i < 26; i++) {
-    const a = rand(0, TAU), r = rand(0.7, 1);
-    const x = CX + Math.cos(a) * RX * r, y = CY + Math.sin(a) * RY * r;
-    const fg = g.createRadialGradient(x, y, 2, x, y, 80);
-    fg.addColorStop(0, 'rgba(220,245,255,0.14)'); fg.addColorStop(1, 'rgba(220,245,255,0)');
-    g.fillStyle = fg; g.beginPath(); g.ellipse(x, y, 90, 50, 0, 0, TAU); g.fill();
-  }
-  g.strokeStyle = 'rgba(255,120,50,0.22)'; g.shadowColor = '#ff6a2a'; g.shadowBlur = 8; g.lineWidth = 1.6;
-  for (let i = 0; i < 12; i++) {
-    let x = CX + rand(-60, 60), y = CY + rand(-30, 30), a = rand(0, TAU);
-    g.beginPath(); g.moveTo(x, y);
-    for (let k = 0; k < 7; k++) { a += rand(-0.6, 0.6); x += Math.cos(a) * 24; y += Math.sin(a) * 13; g.lineTo(x, y); }
-    g.stroke();
-  }
-  g.restore();
-  // rune ring
-  g.save();
-  g.strokeStyle = 'rgba(130,215,255,0.42)'; g.shadowColor = '#6fd3f7'; g.shadowBlur = 12; g.lineWidth = 2;
-  ell(g, CX, CY, RX * 0.88, RY * 0.88); g.stroke();
-  ell(g, CX, CY, RX * 0.81, RY * 0.81); g.stroke();
-  g.lineWidth = 1.5;
-  for (let i = 0; i < 40; i++) {
-    const a = i / 40 * TAU, x = CX + Math.cos(a) * RX * 0.845, y = CY + Math.sin(a) * RY * 0.845;
+  // basalt columns seen from above: hex-ish cells
+  g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 1.5;
+  for (let row = -1; row < 16; row++) for (let col = -1; col < 26; col++) {
+    const x = col * 52 + (row % 2) * 26 + rand(-4, 4) + 10, y = 130 + row * 26 * 1.0 + rand(-3, 3), r = 27;
     g.beginPath();
-    for (let k = 0; k < 3; k++) { const x0 = x + rand(-5, 5), y0 = y + rand(-4, 4); g.moveTo(x0, y0); g.lineTo(x0 + rand(-5, 5), y0 + rand(-4, 4)); }
+    for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + Math.PI / 6; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r * GY); }
+    g.closePath(); g.stroke();
+    if (Math.random() < 0.18) { g.fillStyle = `rgba(${rand(0, 1) < 0.5 ? '255,255,255' : '0,0,0'},0.035)`; g.fill(); }
+  }
+  // scorch marks
+  for (let i = 0; i < 14; i++) {
+    const x = CX + rand(-RX, RX) * 0.8, y = CY + rand(-RY, RY) * 0.8;
+    const sg = g.createRadialGradient(x, y, 2, x, y, 70);
+    sg.addColorStop(0, 'rgba(0,0,0,0.35)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = sg; g.beginPath(); g.ellipse(x, y, 80, 44, 0, 0, TAU); g.fill();
+  }
+  // glowing fissures
+  g.strokeStyle = 'rgba(255,120,40,0.5)'; g.shadowColor = '#ff6a2a'; g.shadowBlur = 10; g.lineWidth = 2;
+  for (let i = 0; i < 16; i++) {
+    const a0 = rand(0, TAU);
+    let x = CX + Math.cos(a0) * RX * rand(0.2, 0.95), y = CY + Math.sin(a0) * RY * rand(0.2, 0.95), a = rand(0, TAU);
+    g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 6; k++) { a += rand(-0.8, 0.8); x += Math.cos(a) * 22; y += Math.sin(a) * 12; g.lineTo(x, y); }
     g.stroke();
   }
-  // center sigil
-  g.strokeStyle = 'rgba(160,225,255,0.18)'; g.lineWidth = 2;
-  g.save(); g.translate(CX, CY); g.scale(1, GY); snowflake(g, 0, 0, 120, 2.5); g.restore();
+  g.shadowBlur = 0;
+  // rubble
+  for (let i = 0; i < 40; i++) {
+    const x = CX + rand(-RX, RX) * 0.95, y = CY + rand(-RY, RY) * 0.95;
+    if (!inArena(x, y, 0.97)) continue;
+    const r = rand(3, 8);
+    g.fillStyle = '#1a100d'; g.beginPath(); g.ellipse(x, y, r, r * 0.6, 0, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(255,200,160,0.08)'; g.beginPath(); g.ellipse(x - r * 0.2, y - r * 0.2, r * 0.6, r * 0.3, 0, 0, TAU); g.fill();
+  }
   g.restore();
-  // back crystals
-  crystal(g, 170, 250, 90, 22, -8); crystal(g, 205, 238, 60, 16, 6); crystal(g, 140, 262, 46, 12, -4);
-  crystal(g, 1110, 250, 96, 22, 8); crystal(g, 1075, 236, 58, 15, -6); crystal(g, 1140, 262, 44, 12, 4);
-  crystal(g, 640, 150, 70, 18, 0); crystal(g, 600, 158, 40, 11, -5); crystal(g, 682, 158, 44, 12, 5);
+  // the lair's fire sigil
+  g.save(); g.strokeStyle = 'rgba(255,120,50,0.28)'; g.shadowColor = '#ff6a2a'; g.shadowBlur = 8; g.lineWidth = 2;
+  ell(g, CX, CY, RX * 0.86, RY * 0.86); g.stroke(); ell(g, CX, CY, RX * 0.8, RY * 0.8); g.stroke();
+  g.lineWidth = 1.5;
+  for (let i = 0; i < 36; i++) {
+    const a = i / 36 * TAU, x = CX + Math.cos(a) * RX * 0.83, y = CY + Math.sin(a) * RY * 0.83;
+    g.beginPath(); g.moveTo(x - 4, y + 2); g.lineTo(x, y - 4); g.lineTo(x + 4, y + 2); g.stroke();
+  }
+  g.restore();
+  // molten rim where the platform meets the lava
+  g.save(); g.strokeStyle = 'rgba(255,150,60,0.55)'; g.shadowColor = '#ff7a2a'; g.shadowBlur = 12; g.lineWidth = 2.5;
+  ell(g, CX, CY + 40, RX + 4, RY + 4); g.stroke(); g.restore();
+
+  // foreground: stalactites and boulders framing the view (drawn over the fight)
+  const f = fore.getContext('2d');
+  f.setTransform(2, 0, 0, 2, 0, 0);
+  for (let i = 0; i < 34; i++) {
+    const x = i * 40 + rand(-12, 12);
+    const edge = Math.min(x, W - x); // long at the edges, short over the middle
+    const h = edge < 260 ? rand(50, 120) : rand(12, 34);
+    const w = rand(10, 22);
+    stalactite(f, x, w, h, i % 2 ? '#0c0605' : '#120806');
+    // lava light catching the tip
+    f.strokeStyle = 'rgba(255,110,40,0.28)'; f.lineWidth = 1.5;
+    f.beginPath(); f.moveTo(x - w * 0.55, h * 0.45); f.lineTo(x - w * 0.15, h * 0.8); f.lineTo(x, h); f.lineTo(x + w * 0.2, h * 0.75); f.stroke();
+  }
+  f.fillStyle = '#0a0504';
+  for (const [x, y, rx, ry] of [[-30, H + 10, 190, 90], [80, H + 30, 120, 60], [W + 30, H + 10, 190, 90], [W - 90, H + 30, 110, 60]]) {
+    f.beginPath(); f.ellipse(x, y, rx, ry, 0, 0, TAU); f.fill();
+  }
+  f.strokeStyle = 'rgba(255,120,40,0.35)'; f.lineWidth = 2;
+  f.beginPath(); f.ellipse(-30, H + 10, 190, 90, 0, Math.PI * 1.55, Math.PI * 1.95); f.stroke();
+  f.beginPath(); f.ellipse(W + 30, H + 10, 190, 90, 0, Math.PI * 1.05, Math.PI * 1.45); f.stroke();
 }
 buildFloor();
+
+// ---- animated lava: flowing highlights, lavafalls and bubbles ----
+const lavaBlobs = [];
+while (lavaBlobs.length < 34) {
+  const x = rand(0, W), y = rand(LAVA_TOP + 8, H);
+  if (onLava(x, y)) lavaBlobs.push({ x, y, r: rand(20, 60), sp: rand(6, 18), ph: rand(0, TAU) });
+}
+const LAVAFALLS = [{ x: 205, w: 34 }, { x: 1075, w: 30 }];
+const bubbles = [];
+function updLava(dt) {
+  if (Math.random() < dt * 6) {
+    const x = rand(0, W), y = rand(LAVA_TOP + 10, H);
+    if (onLava(x, y)) bubbles.push({ x, y, t: 0, r: rand(5, 12) });
+  }
+  for (const b of bubbles) {
+    b.t += dt;
+    if (b.t > 0.7 && !b.popped) { b.popped = true; if (S) spray(b.x, b.y, 6, { color: PYRO_C, ang: -Math.PI / 2, spread: 0.8, smin: 60, smax: 160, g: 380, lmin: 0.3, lmax: 0.6, zmax: 3 }); }
+  }
+  for (let i = bubbles.length - 1; i >= 0; i--) if (bubbles[i].t > 0.9) bubbles.splice(i, 1);
+}
+function drawLava(g) {
+  const t = S.anim;
+  g.save();
+  // clip to the lava: everything below the wall seam except the platform
+  g.beginPath(); g.rect(0, LAVA_TOP, W, H - LAVA_TOP); g.ellipse(CX, CY + 40, RX + 4, RY + 4, 0, 0, TAU, true); g.clip('evenodd');
+  g.globalCompositeOperation = 'lighter';
+  for (const b of lavaBlobs) {
+    const x = b.x + Math.sin(t * 0.3 + b.ph) * 30 + ((t * b.sp) % 60) - 30, y = b.y + Math.sin(t * 0.5 + b.ph) * 4;
+    const a = 0.18 + 0.1 * Math.sin(t * 1.3 + b.ph);
+    const lg = g.createRadialGradient(x, y, 1, x, y, b.r);
+    lg.addColorStop(0, `rgba(255,220,120,${a})`); lg.addColorStop(1, 'rgba(255,120,30,0)');
+    g.fillStyle = lg; g.beginPath(); g.ellipse(x, y, b.r * 1.6, b.r * 0.5, 0, 0, TAU); g.fill();
+  }
+  for (const b of bubbles) {
+    const p = Math.min(1, b.t / 0.7), r = b.r * (0.4 + p);
+    g.fillStyle = `rgba(255,200,90,${0.5 * (1 - Math.max(0, b.t - 0.7) * 5)})`;
+    g.beginPath(); g.ellipse(b.x, b.y - r * 0.3, r, r * 0.6, 0, 0, TAU); g.fill();
+  }
+  g.restore();
+  // lavafalls pouring from the back wall
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (const f of LAVAFALLS) {
+    const fg = g.createLinearGradient(0, 30, 0, LAVA_TOP);
+    fg.addColorStop(0, 'rgba(255,120,30,0.5)'); fg.addColorStop(1, 'rgba(255,200,90,0.85)');
+    g.fillStyle = fg;
+    // wavy stream that widens as it falls
+    g.beginPath();
+    for (let y = 36; y <= LAVA_TOP; y += 6) g.lineTo(f.x - f.w / 2 * (0.6 + 0.5 * (y - 36) / (LAVA_TOP - 36)) + Math.sin(y * 0.09 + t * 4) * 2.5, y);
+    for (let y = LAVA_TOP; y >= 36; y -= 6) g.lineTo(f.x + f.w / 2 * (0.6 + 0.5 * (y - 36) / (LAVA_TOP - 36)) + Math.sin(y * 0.08 + t * 3.5 + 1) * 2.5, y);
+    g.closePath(); g.fill();
+    // mouth of the fissure it pours from
+    g.fillStyle = 'rgba(255,230,150,0.8)'; g.beginPath(); g.ellipse(f.x, 38, f.w * 0.4, 5, 0, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(255,240,170,0.55)'; g.lineWidth = 2;
+    for (let k = 0; k < 5; k++) {
+      const x = f.x - f.w / 2 + 4 + k * (f.w - 8) / 4, off = (t * 160 + k * 37) % 50;
+      for (let y = 36 + off - 50; y < LAVA_TOP; y += 50) { g.beginPath(); g.moveTo(x, Math.max(36, y)); g.lineTo(x, Math.min(LAVA_TOP, y + 22)); g.stroke(); }
+    }
+    const sg = g.createRadialGradient(f.x, LAVA_TOP + 6, 2, f.x, LAVA_TOP + 6, 60);
+    sg.addColorStop(0, `rgba(255,220,120,${0.6 + 0.2 * Math.sin(t * 8)})`); sg.addColorStop(1, 'rgba(255,100,30,0)');
+    g.fillStyle = sg; g.beginPath(); g.ellipse(f.x, LAVA_TOP + 8, 60, 20, 0, 0, TAU); g.fill();
+  }
+  g.restore();
+  // the whole cave breathes with the lava's glow
+  g.save(); g.globalCompositeOperation = 'lighter';
+  g.fillStyle = `rgba(255,90,20,${0.035 + 0.025 * Math.sin(t * 0.9)})`; g.fillRect(0, 0, W, H);
+  g.restore();
+}
 
 /* ---------------- drawing: frame ---------------- */
 function drawGroundFX(g) {
@@ -1727,8 +1870,11 @@ function drawAmbient(g) {
     g.beginPath(); g.arc(e.x + Math.sin(e.life * 6 + e.x) * 6, e.y, 1.8, 0, TAU); g.fill();
   }
   g.restore();
-  g.fillStyle = 'rgba(235,246,255,0.75)';
-  for (const f of snow) { g.globalAlpha = 0.3 + f.s * 0.25; g.beginPath(); g.arc(f.x, f.y, f.s, 0, TAU); g.fill(); }
+  for (const f of snow) {
+    g.fillStyle = f.hot ? '#ffb070' : '#8a7c76';
+    g.globalAlpha = f.hot ? 0.4 + 0.3 * Math.sin(S.anim * 5 + f.p) : 0.35 + f.s * 0.15;
+    g.beginPath(); g.ellipse(f.x, f.y, f.s, f.s * 0.7, f.p + S.anim, 0, TAU); g.fill();
+  }
   g.globalAlpha = 1;
 }
 
@@ -1767,7 +1913,7 @@ function drawHUD(g) {
   g.textAlign = 'left'; g.font = `800 14px ${FONT_U}`; g.fillStyle = '#bfe9ff';
   g.fillText(fmtTime(S.t), 24, 34);
   g.font = `700 11px ${FONT_U}`; g.fillStyle = '#93a8c9';
-  g.fillText('Frostfire Sanctum', 24, 52);
+  g.fillText('Magma Hollow', 24, 52);
 
   // player portrait + bar
   const px = 60, py = H - 64;
@@ -1967,13 +2113,14 @@ function fmtTime(s) { const m = Math.floor(s / 60), r = Math.floor(s % 60); retu
 function render() {
   const g = ctx;
   g.setTransform(1, 0, 0, 1, 0, 0);
-  g.fillStyle = '#070b16'; g.fillRect(0, 0, cvs.width, cvs.height);
+  g.fillStyle = '#0b0605'; g.fillRect(0, 0, cvs.width, cvs.height);
   g.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offX, dpr * offY);
   g.save();
   g.beginPath(); g.rect(0, 0, W, H); g.clip();
   g.save();
   if (S.shake > 0.3) g.translate(rand(-S.shake, S.shake), rand(-S.shake, S.shake) * 0.7);
   g.drawImage(floor, 0, 0, W, H);
+  drawLava(g);
   drawGroundFX(g);
   drawHealField(g);
   const P = S.P, B = S.B;
@@ -2000,11 +2147,12 @@ function render() {
   drawParts(g);
   if (S.mode !== 'title') drawStamina(g);
   drawAmbient(g);
+  g.drawImage(fore, 0, 0, W, H);
   drawTexts(g);
   g.restore();
   // vignette
   const vg = g.createRadialGradient(CX, H / 2, H * 0.45, CX, H / 2, H * 0.95);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(12,2,0,0.6)');
   g.fillStyle = vg; g.fillRect(0, 0, W, H);
   if (P.hp > 0 && P.hp / P.maxHp < 0.3 && S.mode === 'play') {
     g.fillStyle = `rgba(255,40,40,${0.08 + 0.06 * Math.sin(S.anim * 6)})`; g.fillRect(0, 0, W, H);

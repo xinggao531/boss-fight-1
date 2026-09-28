@@ -25,6 +25,10 @@ Character and boss art (in-battle sprites, Elemental Burst poses, the boss's nor
 
 The key legend stays on screen during the fight. Touch controls (joystick and buttons) show up on phones.
 
+## Arena
+
+The fight takes place in **Magma Hollow**, Pyrrhos's lava cave: a basalt platform with glowing fissures ringed by a lava lake with drifting highlights, popping bubbles and two lavafalls, under a ceiling of stalactites, with ash and embers in the air.
+
 ## Mechanics
 
 - **Elements:** Cryo and Hydro hits attach their element to the boss (icon over his head).
