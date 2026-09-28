@@ -342,6 +342,14 @@ function spray(x, y, n, o) {
 const CRYO_C = ['#ffffff', '#dff6ff', '#9fe3ff', '#6fd3f7'];
 const PYRO_C = ['#fff1a8', '#ffc24a', '#ff8a3a', '#ff5a2a'];
 const HYDRO_C = ['#ffffff', '#bfe6ff', '#7cc4ff', '#3d8fe8'];
+// Damage number colours by attack type (crits are a lighter tint of the same colour)
+const DMG_COLOR = {
+  physical: ['#e9edf2', '#ffffff'],
+  cryo:     ['#8fe0ff', '#d4f5ff'],
+  hydro:    ['#4ea8ff', '#a8d6ff'],
+  pyro:     ['#ff7a45', '#ffb08a']
+};
+const dmgColor = (el, crit) => DMG_COLOR[el || 'physical'][crit ? 1 : 0];
 function popText(x, y, txt, color, size, label) {
   S.texts.push({ x: x + rand(-14, 14), y, txt: String(txt), color, size, label, life: 1.1, max: 1.1, vy: -70 });
 }
@@ -359,12 +367,12 @@ function dealBoss(base, x, y, kind, el) {
   if (B.shield > 0) {
     const sd = Math.round(dmg * (el ? 2.5 : 1));
     B.shield -= sd;
-    popText(x, y, sd, '#ffe0b0', crit ? 26 : 20, 'Aegis');
+    popText(x, y, sd, dmgColor(el, crit), crit ? 26 : 20, 'Aegis');
     spray(x, y, 6, { color: PYRO_C.concat(CRYO_C), smin: 80, smax: 220, shape: 'shard', lmax: 0.5 });
     if (B.shield <= 0) { B.shield = 0; shieldBreak(); }
     return true;
   }
-  let label = null, color = el === 'hydro' ? (crit ? '#e0f2ff' : '#7cc4ff') : (crit ? '#e9fbff' : '#a9e6ff');
+  let label = null, color = dmgColor(el, crit);
   if (el) {
     const cur = B.elT > 0 ? B.el : null;
     if (cur === 'pyro') {
@@ -439,7 +447,7 @@ function hurtPlayer(d, sx, sy, ground) {
   P.hp -= d; S.stats.taken += d;
   P.iframe = 0.55; P.hurtT = 0.25; S.shake = Math.max(S.shake, 9);
   if (sx !== undefined) { const a = Math.atan2(P.y - sy, P.x - sx); P.x += Math.cos(a) * 26; P.y += Math.sin(a) * 18; clampArena(P, 0.96); }
-  popText(P.x, P.y - 70, d, '#ff6b6b', 22);
+  popText(P.x, P.y - 70 - P.z, d, dmgColor('pyro'), 22); // everything Pyrrhos throws is fire
   spray(P.x, P.y - 30, 12, { color: PYRO_C, smin: 60, smax: 220, lmax: 0.5 });
   sfx('hurt');
   if (P.hp <= 0) {
@@ -677,7 +685,7 @@ function updShots(dt) {
     } else s.life = Math.min(s.life, 0.3);
     const sp = s.el === 'hydro' && !s.kind ? 360 + s.age * 1300 : 900 + s.age * 1800; // bubbles drift, shards fly
     s.x += Math.cos(s.ang) * sp * dt; s.y += Math.sin(s.ang) * sp * dt;
-    if (Math.random() < (s.el === 'hydro' ? 0.25 : 0.6)) S.parts.push({ x: s.x, y: s.y, vx: 0, vy: s.el === 'hydro' ? -20 : 0, life: 0.25, max: 0.25, size: s.el === 'hydro' ? 2 : 3, color: s.el === 'hydro' ? '#cfeaff' : '#bfe9ff', g: 0, drag: 0, shape: 'dot', rot: 0, vr: 0, add: true });
+    if (s.el !== 'hydro' && Math.random() < 0.6) S.parts.push({ x: s.x, y: s.y, vx: 0, vy: 0, life: 0.25, max: 0.25, size: 3, color: '#bfe9ff', g: 0, drag: 0, shape: 'dot', rot: 0, vr: 0, add: true });
     if (!B.dead && Math.hypot(s.x - bx, s.y - by) < B.r + 10) {
       s.life = 0;
       if (dealBoss(s.dmg, s.x, s.y, s.kind, s.el) && s.kind !== 'tick') S.P.energy = Math.min(S.P.maxEnergy, S.P.energy + (s.el === 'hydro' ? 0.45 : 0.7));
@@ -1995,17 +2003,20 @@ function drawProjectiles(g) {
   if (sprReady('fx_fireball')) for (const f of S.foes) drawFireball(g, f.x, f.y, Math.atan2(f.vy, f.vx), f.r * 2.2);
   for (const s of S.shots) {
     if (s.el === 'hydro') {
-      // a soap-bubble: clear body, blue-violet rim, bright highlight; it wobbles as it drifts
-      const r = s.kind ? 9 : 11 + (s.dmg % 3), w = Math.sin(s.age * 14 + s.dmg) * 0.12;
-      const x = s.x + Math.sin(s.age * 9 + s.y) * 3, y = s.y + Math.cos(s.age * 8 + s.x) * 3;
-      g.save(); g.translate(x, y); g.scale(1 + w, 1 - w);
-      const bg = g.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
-      bg.addColorStop(0, 'rgba(255,255,255,0.35)'); bg.addColorStop(0.7, 'rgba(140,210,255,0.14)'); bg.addColorStop(1, 'rgba(170,150,255,0.45)');
+      // water bubble: blue, mostly clear in the middle, darker rim, curved window reflection; wobbles as it drifts
+      const r = s.kind ? 9 : 11 + (s.dmg % 3), w = Math.sin(s.age * 12 + s.dmg) * 0.08;
+      const x = s.x + Math.sin(s.age * 7 + s.y * 0.1) * 2.5, y = s.y + Math.cos(s.age * 6 + s.x * 0.1) * 2.5;
+      g.save(); g.translate(x, y); g.rotate(s.ang); g.scale(1 + w, 1 - w); g.rotate(-s.ang);
+      const bg = g.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
+      bg.addColorStop(0, 'rgba(90,170,255,0.10)'); bg.addColorStop(0.72, 'rgba(70,150,245,0.22)'); bg.addColorStop(1, 'rgba(40,120,230,0.55)');
       g.fillStyle = bg; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
-      g.strokeStyle = 'rgba(200,235,255,0.9)'; g.lineWidth = 1.2; g.stroke();
-      g.fillStyle = 'rgba(255,255,255,0.95)';
-      g.beginPath(); g.ellipse(-r * 0.38, -r * 0.4, r * 0.28, r * 0.16, -0.7, 0, TAU); g.fill();
-      g.beginPath(); g.arc(r * 0.35, r * 0.4, r * 0.1, 0, TAU); g.fill();
+      g.strokeStyle = 'rgba(150,205,255,0.85)'; g.lineWidth = 1; g.stroke();
+      // soft curved reflection hugging the upper-left rim
+      g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = r * 0.16; g.lineCap = 'round';
+      g.beginPath(); g.arc(0, 0, r * 0.72, Math.PI * 1.08, Math.PI * 1.42); g.stroke();
+      // faint bounce light on the lower-right rim
+      g.strokeStyle = 'rgba(200,235,255,0.45)'; g.lineWidth = r * 0.08;
+      g.beginPath(); g.arc(0, 0, r * 0.8, Math.PI * 0.15, Math.PI * 0.4); g.stroke();
       g.restore();
       continue;
     }
