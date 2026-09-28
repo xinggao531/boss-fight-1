@@ -367,9 +367,9 @@ let diffKey = 'normal';
 try { const v = localStorage.getItem('fw-difficulty'); if (DIFFS[v]) diffKey = v; } catch (e) {}
 const D = () => DIFFS[diffKey];
 const CHARS = [
-  { id: 'yukina', name: 'Yukina', el: 'cryo', maxHp: 1200, maxEnergy: 60, skillMax: 10, burstMax: 16,
+  { id: 'yukina', name: 'Yukina', el: 'cryo', maxHp: 1200, maxEnergy: 60, skillMax: 12, burstMax: 16,
     skillName: 'Frostfan Gale', burstName: 'Eternal Winter Waltz', color: '#6fd3f7' },
-  { id: 'mizuha', name: 'Mizuha', el: 'hydro', maxHp: 1400, maxEnergy: 70, skillMax: 10, burstMax: 18,
+  { id: 'mizuha', name: 'Mizuha', el: 'hydro', maxHp: 1400, maxEnergy: 70, skillMax: 12, burstMax: 18,
     skillName: 'Tide Sprite', burstName: 'Tidal Lullaby', color: '#5fb6ff' }
 ];
 const PARTY_KEYS = ['hp', 'maxHp', 'hpShown', 'energy', 'maxEnergy', 'skillCd', 'burstCd'];
