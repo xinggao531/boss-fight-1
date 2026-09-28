@@ -297,7 +297,7 @@ try { if (matchMedia('(pointer: coarse)').matches) enableTouch(); } catch (e) {}
 /* ---------------- game state ---------------- */
 const BOSS_HP = 20000;
 const CHARS = [
-  { id: 'yukina', name: 'Yukina', el: 'cryo', maxHp: 1200, maxEnergy: 60, skillMax: 10, burstMax: 12,
+  { id: 'yukina', name: 'Yukina', el: 'cryo', maxHp: 1200, maxEnergy: 60, skillMax: 10, burstMax: 16,
     skillName: 'Frostfan Gale', burstName: 'Eternal Winter Waltz', color: '#6fd3f7' },
   { id: 'mizuha', name: 'Mizuha', el: 'hydro', maxHp: 1400, maxEnergy: 70, skillMax: 10, burstMax: 18,
     skillName: 'Tide Sprite', burstName: 'Tidal Lullaby', color: '#5fb6ff' }
@@ -1809,24 +1809,41 @@ function drawMeteors(g) {
 function drawSlashes(g) {
   const P = S.P;
   for (const sl of S.slashes) {
-    const p = sl.t / 0.28, R0 = (sl.strong ? 118 : 84), cx = P.x + P.face * 8, cy = P.y - 50 - P.z;
+    const p = sl.t / 0.28, R0 = (sl.strong ? 118 : 88), cx = P.x + P.face * 8, cy = P.y - 50 - P.z;
     // alternate up-swing / down-swing; the finisher is a full spin
-    const span = sl.step === 3 ? TAU : 2.2, dir = sl.step % 2 ? 1 : -1;
+    const span = sl.step === 3 ? TAU : 2.3, dir = sl.step % 2 ? 1 : -1;
     const start = sl.step === 3 ? sl.ang : sl.ang - dir * span / 2;
-    const sweep = Math.min(1, p * 2.2);
-    const a0 = start + dir * span * Math.max(0, sweep - 0.45), a1 = start + dir * span * sweep;
-    const alpha = 1 - Math.max(0, p - 0.5) * 2;
-    const col = sl.frost || sl.strong ? ['rgba(255,255,255,', 'rgba(140,220,255,'] : ['rgba(255,255,255,', 'rgba(200,210,225,'];
-    g.save();
-    // dark-blue edge so the arc reads against the bright boss, then a glowing blade trail
-    g.strokeStyle = `rgba(30,70,140,${alpha * 0.55})`; g.lineWidth = sl.strong ? 20 : 15; g.lineCap = 'round';
-    g.beginPath(); g.ellipse(cx, cy, R0, R0 * 0.7, 0, Math.min(a0, a1), Math.max(a0, a1)); g.stroke();
-    g.globalCompositeOperation = 'lighter';
-    for (let k = 0; k < 3; k++) {
-      g.strokeStyle = col[k ? 1 : 0] + (alpha * (1 - k * 0.2)) + ')';
-      g.lineWidth = (sl.strong ? 16 : 11) - k * 4; g.lineCap = 'round';
-      g.beginPath(); g.ellipse(cx, cy, R0 - k * 9, (R0 - k * 9) * 0.7, 0, Math.min(a0, a1), Math.max(a0, a1)); g.stroke();
+    const sweep = Math.min(1, p * 2.6);                          // fast, snappy swing
+    const head = start + dir * span * sweep, tail = start + dir * span * Math.max(0, sweep - 0.55);
+    const alpha = 1 - Math.max(0, p - 0.45) / 0.55;
+    const th = sl.strong ? 13 : 9;                                 // crescent thickness at its widest
+    const tint = sl.frost || sl.strong ? '150,225,255' : '215,225,240';
+    // thin crescent: sharp at both tips, widest near the blade (head)
+    const N = 22, outer = [], inner = [];
+    for (let i = 0; i <= N; i++) {
+      const u = i / N, a = tail + (head - tail) * u;
+      const w = th * Math.pow(Math.sin(Math.PI * u), 0.8) * (0.35 + 0.65 * u);
+      outer.push([cx + Math.cos(a) * R0, cy + Math.sin(a) * R0 * 0.7]);
+      inner.push([cx + Math.cos(a) * (R0 - w), cy + Math.sin(a) * (R0 - w) * 0.7]);
     }
+    g.save();
+    g.beginPath(); g.moveTo(...outer[0]);
+    for (const q of outer) g.lineTo(...q);
+    for (let i = inner.length - 1; i >= 0; i--) g.lineTo(...inner[i]);
+    g.closePath();
+    g.fillStyle = `rgba(${tint},${0.9 * alpha})`; g.fill();
+    g.strokeStyle = `rgba(20,40,80,${0.35 * alpha})`; g.lineWidth = 0.8; g.stroke();
+    // razor-thin bright cutting edge
+    g.globalCompositeOperation = 'lighter';
+    g.strokeStyle = `rgba(255,255,255,${alpha})`; g.lineWidth = 1.4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(...outer[Math.floor(N * 0.25)]);
+    for (let i = Math.floor(N * 0.25); i <= N; i++) g.lineTo(...outer[i]);
+    g.stroke();
+    // glint at the blade tip
+    const [hx, hy] = outer[N];
+    g.fillStyle = `rgba(255,255,255,${alpha})`;
+    g.beginPath(); g.moveTo(hx - 7, hy); g.lineTo(hx, hy - 1.5); g.lineTo(hx + 7, hy); g.lineTo(hx, hy + 1.5); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(hx, hy - 7); g.lineTo(hx + 1.5, hy); g.lineTo(hx, hy + 7); g.lineTo(hx - 1.5, hy); g.closePath(); g.fill();
     g.restore();
   }
 }

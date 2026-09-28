@@ -2,7 +2,7 @@
 
 A Genshin Impact–inspired boss fight in one HTML file. You lead a party of two against **Pyrrhos, the Scorched Sovereign**, a Pyro boss:
 
-- **Yukina, the Frostbloom Maiden** (Cryo): a melee sword fighter. Her slashes are physical and only land within reach of the boss (she steps in a little when close). Frostfan Gale (E, 10s cooldown) sends an icy gust from her fan into the boss and frost-infuses her sword for 6s, so slashes apply Cryo. Eternal Winter Waltz (Q, 12s cooldown, needs 60 energy) is 3s of blizzard around her that hits hard, blows away fireballs, and makes her sword 2.2x stronger with longer reach.
+- **Yukina, the Frostbloom Maiden** (Cryo): a melee sword fighter. Her slashes are physical and only land within reach of the boss (she steps in a little when close). Frostfan Gale (E, 10s cooldown) sends an icy gust from her fan into the boss and frost-infuses her sword for 6s, so slashes apply Cryo. Eternal Winter Waltz (Q, 16s cooldown, needs 60 energy) is 3s of blizzard around her that hits hard, blows away fireballs, and makes her sword 2.2x stronger with longer reach.
 - **Mizuha** (Hydro): water orbs, Tide Sprite (E, a water koi that keeps attacking for 6s even after you switch out) and Tidal Lullaby (Q, heals the whole party, then rains healing for 5s).
 
 Character and boss art (in-battle sprites, Elemental Burst poses, the boss's normal / attack / burst / defence / downed states, and fireball, eruption, rock-burst and lava-pool effects) is embedded in `index.html` as WebP data. Open `index.html` in a browser to play. There is no build step.
