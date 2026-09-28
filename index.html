@@ -384,7 +384,7 @@ function newGame(mode) {
       dashT: 0, dashCd: 0, dashDx: 1, dashDy: 0, iframe: 0, dashIframe: 0, hurtT: 0, castT: 0, evadeT: 0, z: 0, vz: 0, running: false, runLock: false, swapCd: 0, swapFx: 0, swingT: 0, lungeT: 0, lungeDx: 0, lungeDy: 0, farT: 0 },
     B: { x: CX + 170, y: CY - 50, r: 62, hp: BOSS_HP, maxHp: BOSS_HP, hpShown: BOSS_HP, shield: 0, maxShield: 1,
       phase: 1, state: 'idle', t: 0, sub: 0, idleDur: 1.6, tx: CX, ty: CY - 40, el: null, elT: 0, freezeCd: 0, stunKind: 'break', stun: 0, hitFlash: 0,
-      invuln: 0, glow: 0, cdx: 1, cdy: 0, hitPlayer: false, spin: 0, spin0: 0, spinDir: 1,  last: '', reshield: false, dead: false, deathT: 0, trailT: 0, kick: 0, popT: 0, rollA: 0, pose: '' },
+      invuln: 0, glow: 0, cdx: 1, cdy: 0, hitPlayer: false, spin: 0, last: '', reshield: false, dead: false, deathT: 0, trailT: 0, kick: 0, popT: 0, rollA: 0, pose: '' },
     shots: [], foes: [], hazards: [], rings: [], parts: [], texts: [], orbs: [], blooms: [],
     stats: { dmg: 0, maxHit: 0, melts: 0, taken: 0 },
     party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 20, skillCd: 0, burstCd: 0, infuseT: 0 })),
@@ -908,15 +908,6 @@ function fireball(x, y, ang, sp, r, dmg) {
   sp *= D().speed;
   S.foes.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: r || 13, dmg: dmg || 90, life: 5 });
 }
-const SPIRAL_T0 = 0.9, SPIRAL_T1 = 3.9, SPIRAL_ARMS = 8, SPIRAL_V = 230;
-const spiralOmega = () => (D().extra > 0 ? 0.48 : 0.4); // radians per second: slow enough to run alongside a gap at the far edge
-// centre of gap k at distance r from him: streams trail behind the emitter by the time bullets took to get there
-function spiralGapAngle(B, k, r) {
-  // bullets now at distance r left him at time te; the streams pointed where the emitter was then
-  const te = B.t - r / (SPIRAL_V * D().speed);
-  const spun = spiralOmega() * B.spinDir * Math.min(Math.max(te - SPIRAL_T0, 0), SPIRAL_T1 - SPIRAL_T0);
-  return B.spin0 + spun + (k + 0.5) * TAU / SPIRAL_ARMS;
-}
 function updBoss(dt) {
   const B = S.B, P = S.P;
   B.t += dt; B.hitFlash -= dt; B.invuln -= dt; B.kick -= dt; B.popT -= dt;
@@ -1024,21 +1015,16 @@ function updBoss(dt) {
       break;
     }
     case 'spiral': {
-      // Inferno Spiral: eight streams of fire spinning out from him. The spin is slow enough to walk alongside
-      // a 45-degree gap, even near the edge; pale wedges mark the gaps.
       B.glow = 1;
-      if (B.t < SPIRAL_T0) B.spin0 = B.spin;
-      else if (B.t < SPIRAL_T1) {
-        B.spin = B.spin0 + spiralOmega() * B.spinDir * (B.t - SPIRAL_T0);
+      if (B.t > 0.5 && B.t < 3.6) {
         B.sub -= dt;
         if (B.sub <= 0) {
-          B.sub = 0.11;
-          for (let k = 0; k < SPIRAL_ARMS; k++) fireball(B.x, bodyY, B.spin + k * TAU / SPIRAL_ARMS, SPIRAL_V, 10, 70);
+          B.sub = 0.1; B.spin += 0.23;
+          for (let k = 0; k < 4; k++) fireball(B.x, bodyY, B.spin + k * TAU / 4, 250, 10, 70);
           sfx('fire');
         }
       }
-      // he holds the pose until the last stream has swept past the edge, so the wedges stay up
-      if (B.t > SPIRAL_T1 + 2.4) { toState('idle'); B.spinDir = -B.spinDir; }
+      if (B.t > 4.0) toState('idle');
       break;
     }
   }
@@ -1053,7 +1039,7 @@ function updFoes(dt) {
   for (const f of S.foes) {
     f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
     if (Math.random() < 0.5) S.parts.push({ x: f.x + rand(-4, 4), y: f.y + rand(-4, 4), vx: -f.vx * 0.1, vy: -f.vy * 0.1 - 20, life: 0.35, max: 0.35, size: f.r * 0.6, color: PYRO_C[(Math.random() * 4) | 0], g: 0, drag: 1, shape: 'dot', rot: 0, vr: 0, add: true });
-    if (Math.hypot(f.x - P.x, f.y - (P.y - 30 - P.z)) < f.r * 0.6 + 10) { if (hurtPlayer(f.dmg, f.x, f.y)) f.life = 0; }
+    if (Math.hypot(f.x - P.x, f.y - (P.y - 30 - P.z)) < f.r + 14) { if (hurtPlayer(f.dmg, f.x, f.y)) f.life = 0; }
     if (f.x < -60 || f.x > W + 60 || f.y < -60 || f.y > H + 60) f.life = 0;
   }
   S.foes = S.foes.filter(f => f.life > 0);
@@ -1906,22 +1892,6 @@ function drawGroundFX(g) {
     g.restore();
   }
   const B = S.B;
-  if (B.state === 'spiral') {
-    // pale wedges: the safe gaps between the streams, bent to match the streams' curve
-    const ox = B.x, oy = B.y - 70, half = (TAU / SPIRAL_ARMS) * 0.3;
-    const a = (B.t < SPIRAL_T0 ? 0.32 + 0.14 * Math.sin(t * 14) : 0.2) * Math.min(1, B.t * 4, (SPIRAL_T1 + 2.4 - B.t) * 2);
-    g.save();
-    for (let k = 0; k < SPIRAL_ARMS; k++) {
-      g.beginPath();
-      for (let r = 120; r <= 700; r += 40) { const c = spiralGapAngle(B, k, r) - half; g.lineTo(ox + Math.cos(c) * r, oy + Math.sin(c) * r); }
-      for (let r = 700; r >= 120; r -= 40) { const c = spiralGapAngle(B, k, r) + half; g.lineTo(ox + Math.cos(c) * r, oy + Math.sin(c) * r); }
-      g.closePath();
-      const wg = g.createRadialGradient(ox, oy, 100, ox, oy, 700);
-      wg.addColorStop(0, `rgba(210,245,255,${a * 0.5})`); wg.addColorStop(0.5, `rgba(210,245,255,${a})`); wg.addColorStop(1, 'rgba(210,245,255,0)');
-      g.fillStyle = wg; g.fill();
-    }
-    g.restore();
-  }
   if (B.state === 'charge' && B.sub === 0) {
     const len = 820, w = 70, px = -B.cdy, py = B.cdx;
     g.save();
