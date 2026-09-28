@@ -240,6 +240,7 @@ function sfx(k) {
     case 'freeze': tone(2200, 0.4, 'triangle', 0.07, 0.5); noise(0.4, 0.2, 3000, 'highpass'); break;
     case 'swap': tone(660, 0.12, 'sine', 0.06, 1.5); tone(990, 0.16, 'sine', 0.04, 1.3, 0.05); break;
     case 'slash': noise(0.12, 0.12, 3200, 'bandpass'); tone(1200, 0.08, 'triangle', 0.03, 0.5); break;
+    case 'splash': noise(0.18, 0.08, 1400, 'bandpass'); tone(420, 0.12, 'sine', 0.05, 1.8); break;
     case 'jump': tone(520, 0.14, 'sine', 0.06, 1.8); break;
     case 'dash': noise(0.16, 0.1, 2600, 'highpass'); break;
     case 'break': noise(0.7, 0.35, 2200, 'highpass'); tone(1760, 0.6, 'triangle', 0.08, 0.4); tone(260, 0.7, 'sawtooth', 0.08, 0.4); break;
@@ -320,7 +321,7 @@ function newGame(mode) {
     stats: { dmg: 0, maxHit: 0, melts: 0, taken: 0 },
     party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 20, skillCd: 0, burstCd: 0, infuseT: 0 })),
     slashes: [], gusts: [],
-    active: 0, sprite: null, healT: 0, tide: null, cutinChar: 0
+    active: 0, sprite: null, healT: 0, tide: null, cutinChar: 0, ripples: []
   };
   // P.hp, P.energy, P.skillCd … always refer to whoever is on the field
   for (const k of PARTY_KEYS) Object.defineProperty(S.P, k, { get: () => S.party[S.active][k], set: v => { S.party[S.active][k] = v; } });
@@ -472,6 +473,15 @@ function switchTo(i, forced) {
 }
 
 /* ---------------- player ---------------- */
+// Movement effects (jump, land, dash, run) in the on-field character's element:
+// Yukina kicks up snowflakes, Mizuha splashes water and leaves ripples.
+function moveFx(x, y, n, o) {
+  if (S.party[S.active].el !== 'hydro') return spray(x, y, n, { color: CRYO_C, shape: 'flake', ...o });
+  // a crown of solid droplets thrown upward, falling back under gravity
+  spray(x, y - 4, Math.ceil(n * 1.5), { color: ['#ffffff', '#bfe6ff', '#7fc8ff', '#4aa8ff'], ...o, ang: -Math.PI / 2, spread: 1.25,
+    smin: Math.max(160, o.smin || 0), smax: Math.max(340, o.smax || 0), lmin: 0.45, lmax: 0.65, shape: 'dot', zmin: 3, zmax: 5.5, g: 1100, drag: 0.4, add: false });
+}
+function ripple(x, y, big) { S.ripples.push({ x, y, t: 0, big }); }
 // Auto-target: every attack locks onto the boss's body.
 function aimPoint() { return { x: S.B.x, y: S.B.y - 80 }; }
 function updPlayer(dt) {
@@ -502,12 +512,18 @@ function updPlayer(dt) {
   // jump
   if ((pressed[' '] || pressed.jump) && P.z <= 0 && P.dashT <= 0) {
     P.vz = 470;
-    spray(P.x, P.y, 10, { color: CRYO_C, smin: 30, smax: 120, shape: 'flake', lmax: 0.5, jit: 8 });
-    sfx('jump');
+    moveFx(P.x, P.y, 12, { smin: 30, smax: 120, lmax: 0.5, jit: 8 });
+    if (S.party[S.active].el === 'hydro') { ripple(P.x, P.y, true); sfx('splash'); } else sfx('jump');
   }
   if (P.z > 0 || P.vz > 0) {
     P.vz -= 1500 * dt; P.z += P.vz * dt;
-    if (P.z <= 0) { P.z = 0; P.vz = 0; spray(P.x, P.y, 12, { color: CRYO_C, smin: 40, smax: 150, lmax: 0.4 }); }
+    if (P.z <= 0) {
+      P.z = 0; P.vz = 0;
+      if (S.party[S.active].el === 'hydro') { moveFx(P.x, P.y, 16, { smin: 60, smax: 170, lmin: 0.3, lmax: 0.55, jit: 6 }); ripple(P.x, P.y, true); sfx('splash'); }
+      else spray(P.x, P.y, 12, { color: CRYO_C, smin: 40, smax: 150, lmax: 0.4 });
+    }
+    // Mizuha drips water while airborne
+    else if (S.party[S.active].el === 'hydro' && Math.random() < 0.5) spray(P.x + rand(-10, 10), P.y - P.z - 10, 1, { color: HYDRO_C, ang: Math.PI / 2, spread: 0.2, smin: 40, smax: 90, g: 600, lmin: 0.3, lmax: 0.5, zmax: 2.5 });
   }
   // run (hold Shift)
   const runHeld = keys.shift || touch.run;
@@ -516,7 +532,8 @@ function updPlayer(dt) {
   if (P.running) {
     P.sta -= 16 * dt; P.staDelay = 0.6;
     if (P.sta <= 0) { P.sta = 0; P.runLock = true; }
-    if (Math.random() < 0.5) spray(P.x - P.dirx * 10, P.y, 1, { color: CRYO_C, smin: 5, smax: 30, shape: 'flake', lmin: 0.3, lmax: 0.6 });
+    if (Math.random() < 0.5) moveFx(P.x - P.dirx * 10, P.y, 1, { smin: 5, smax: 30, lmin: 0.3, lmax: 0.6 });
+    if (S.party[S.active].el === 'hydro' && Math.random() < dt * 5) ripple(P.x, P.y, false);
   }
   // dash
   if ((pressed.c || pressed.dash) && P.dashCd <= 0 && P.sta >= 20) {
@@ -524,13 +541,14 @@ function updPlayer(dt) {
     if (!P.moving) { const a = aimPoint(); const ang = Math.atan2(a.y - P.y, a.x - P.x) + Math.PI; dx = Math.cos(ang); dy = Math.sin(ang); }
     P.dashDx = dx; P.dashDy = dy; P.dashT = 0.2; P.iframe = Math.max(P.iframe, 0.32); P.dashIframe = 0.32;
     P.sta -= 20; P.staDelay = 0.9; P.dashCd = 0.32;
-    spray(P.x, P.y - 20, 16, { color: CRYO_C, smin: 30, smax: 140, shape: 'flake', lmax: 0.7, jit: 10 });
+    moveFx(P.x, P.y - 20, 16, { smin: 30, smax: 140, lmax: 0.7, jit: 10 });
+    if (S.party[S.active].el === 'hydro') ripple(P.x, P.y, false);
     sfx('dash');
   }
   let vx, vy;
   if (P.dashT > 0) {
     P.dashT -= dt; vx = P.dashDx * 780; vy = P.dashDy * 780 * 0.8;
-    if (Math.random() < 0.8) spray(P.x, P.y - 28, 1, { color: CRYO_C, smin: 5, smax: 30, shape: 'flake', lmin: 0.4, lmax: 0.8, jit: 12 });
+    if (Math.random() < 0.8) moveFx(P.x, P.y - 28, 1, { smin: 5, smax: 30, lmin: 0.4, lmax: 0.8, jit: 12 });
   } else {
     const sp = 270 * (P.running ? 1.65 : P.atkCd > 0 ? 0.78 : 1) * (P.burstT > 0 ? 1.1 : 1);
     vx = mx * sp; vy = my * sp * 0.8;
@@ -608,6 +626,7 @@ function updPlayer(dt) {
     if (S.party[S.active].id === 'mizuha' && Math.random() < 0.3) spray(P.x + rand(-30, 30), P.y - rand(20, 110) - P.z, 1, { color: ['#9ff5c8', '#bff4ff'], ang: -Math.PI / 2, spread: 0.4, smin: 20, smax: 60, lmin: 0.5, lmax: 0.9 });
   }
   updTide(dt);
+  updRipples(dt);
   updSprite(dt);
   if (P.burstT > 0) {
     P.burstT -= dt; P.burstTick -= dt;
@@ -642,6 +661,18 @@ function startHeal() {
     if (c === S.party[S.active]) popText(P.x, P.y - 90 - P.z, '+' + h, '#9ff59a', 26);
   }
   spray(P.x, P.y - 30, 70, { color: ['#ffffff', '#bff4ff', '#9ff5c8', '#5fb6ff'], smin: 120, smax: 420, up: 120, lmin: 0.5, lmax: 1.2, zmax: 6, drag: 2 });
+}
+function updRipples(dt) {
+  for (const r of S.ripples) r.t += dt;
+  S.ripples = S.ripples.filter(r => r.t < 0.7);
+}
+function drawRipples(g) {
+  for (const r of S.ripples) {
+    const p = r.t / 0.7, R0 = (r.big ? 16 : 10) + p * (r.big ? 58 : 34), a = (1 - p) * (r.big ? 0.8 : 0.55);
+    g.strokeStyle = `rgba(120,200,255,${a})`; g.lineWidth = 2.2 * (1 - p) + 0.6;
+    ell(g, r.x, r.y, R0, R0 * GY); g.stroke();
+    if (r.big) { g.strokeStyle = `rgba(210,240,255,${a * 0.7})`; ell(g, r.x, r.y, R0 * 0.6, R0 * 0.6 * GY); g.stroke(); }
+  }
 }
 function updTide(dt) {
   const td = S.tide, B = S.B;
@@ -2313,6 +2344,7 @@ function render() {
   drawLava(g);
   drawGroundFX(g);
   drawHealField(g);
+  drawRipples(g);
   const P = S.P, B = S.B;
   // shadows
   g.fillStyle = 'rgba(0,0,0,0.35)';
