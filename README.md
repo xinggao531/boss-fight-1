@@ -43,6 +43,10 @@ Pick Easy, Normal or Hard on the cover (the choice is remembered in your browser
 
 Elemental reactions (Frozen, Melt, Vaporize) pierce half of his armour, and a frozen Pyrrhos takes 30% more damage, so higher difficulties reward combining the two characters. While his Aegis is up, every hit goes to the shield and his HP cannot drop.
 
+## Music
+
+An original battle theme is played live with the Web Audio API (no audio files): taiko drums, a koto melody over a D-minor progression, a driving bass line and string pads at 132 BPM. In Phase II the drums double and a shakuhachi-style flute joins; the music goes muffled while Pyrrhos is frozen, dips under burst cut-ins and fades out when the fight ends. M (or the Sound button) mutes music and effects.
+
 ## Arena
 
 The fight takes place in **Magma Hollow**, Pyrrhos's lava cave: a basalt platform with glowing fissures ringed by a lava lake with drifting highlights, popping bubbles and two lavafalls, under a ceiling of stalactites, with ash and embers in the air.

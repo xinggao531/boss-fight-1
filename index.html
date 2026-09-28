@@ -464,7 +464,7 @@ function initAudio() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
-    master = AC.createGain(); master.gain.value = 0.32; master.connect(AC.destination);
+    master = AC.createGain(); master.gain.value = muted ? 0 : 0.32; master.connect(AC.destination);
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   } catch (e) { AC = null; }
@@ -482,6 +482,114 @@ function noise(dur, vol, freq, type = 'lowpass') {
   s.buffer = noiseBuf; f.type = type; f.frequency.value = freq;
   g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   s.connect(f).connect(g).connect(master); s.start(t0); s.stop(t0 + dur + 0.05);
+}
+/* ---------------- music: an original battle theme, played live ----------------
+   Taiko, koto, bass, string pads and (in Phase II) a shakuhachi-style flute over a dark D-minor loop at 132 BPM.
+   It is scheduled a quarter-second ahead of the audio clock, swells in Phase II, goes muffled while Pyrrhos is
+   frozen, dips under burst cut-ins and fades out when the fight ends. */
+const MUSIC = { on: false, step: 0, next: 0, bus: null, filt: null };
+const STEP = 60 / 132 / 4;                                // one 16th note
+const mf = n => 440 * Math.pow(2, (n - 69) / 12);        // MIDI note -> Hz
+const CHORDS = [[50, 53, 57], [46, 50, 53], [48, 52, 55], [45, 49, 52]]; // Dm, Bb, C, A (two bars each)
+const ROOTS = [38, 34, 36, 33];
+// koto melody, 8 bars: [bar, step, note]
+const MELODY = [
+  [0, 0, 74], [0, 2, 69], [0, 3, 70], [0, 4, 69], [0, 6, 67], [0, 8, 69], [0, 10, 65], [0, 11, 67], [0, 12, 69], [0, 14, 74],
+  [1, 0, 72], [1, 2, 69], [1, 4, 67], [1, 6, 65], [1, 8, 67], [1, 10, 69], [1, 12, 63], [1, 14, 62],
+  [2, 0, 77], [2, 2, 74], [2, 3, 75], [2, 4, 74], [2, 6, 70], [2, 8, 72], [2, 10, 74], [2, 12, 77], [2, 14, 74],
+  [3, 0, 72], [3, 2, 70], [3, 4, 69], [3, 6, 70], [3, 8, 74], [3, 12, 72],
+  [4, 0, 79], [4, 2, 76], [4, 4, 72], [4, 6, 74], [4, 8, 76], [4, 10, 79], [4, 12, 76], [4, 14, 74],
+  [5, 0, 72], [5, 2, 67], [5, 4, 69], [5, 6, 72], [5, 8, 74], [5, 12, 76],
+  [6, 0, 81], [6, 2, 79], [6, 3, 77], [6, 4, 76], [6, 6, 73], [6, 8, 74], [6, 10, 76], [6, 12, 69], [6, 14, 73],
+  [7, 0, 76], [7, 4, 69], [7, 8, 81]
+];
+function mOut(node, vol, t, a, d) {
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+  node.connect(g).connect(MUSIC.bus); return g;
+}
+function mKoto(t, n, vol) {
+  for (const [mul, type, v] of [[1, 'triangle', 1], [2, 'sine', 0.35], [3, 'sine', 0.12]]) {
+    const o = AC.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(mf(n) * mul * 1.012, t); o.frequency.exponentialRampToValueAtTime(mf(n) * mul, t + 0.06); // plucked string settles
+    mOut(o, vol * v, t, 0.004, 1.1); o.start(t); o.stop(t + 1.2);
+  }
+}
+function mTaiko(t, vol) {
+  const o = AC.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(46, t + 0.28);
+  mOut(o, vol, t, 0.004, 0.55); o.start(t); o.stop(t + 0.6);
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(); s.buffer = noiseBuf; f.type = 'lowpass'; f.frequency.value = 500;
+  mOut(s.connect(f), vol * 0.5, t, 0.002, 0.09); s.start(t); s.stop(t + 0.12);
+}
+function mWood(t, vol) { // kakko-like click
+  const o = AC.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(1350, t);
+  mOut(o, vol, t, 0.002, 0.045); o.start(t); o.stop(t + 0.06);
+}
+function mBass(t, n, dur, vol) {
+  const o = AC.createOscillator(), f = AC.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = mf(n);
+  f.type = 'lowpass'; f.frequency.setValueAtTime(700, t); f.frequency.exponentialRampToValueAtTime(220, t + dur);
+  mOut(o.connect(f), vol, t, 0.01, dur); o.start(t); o.stop(t + dur + 0.05);
+}
+function mPad(t, notes, dur, vol) {
+  for (const n of notes) for (const det of [-7, 7]) {
+    const o = AC.createOscillator(), f = AC.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = mf(n); o.detune.value = det;
+    f.type = 'lowpass'; f.frequency.value = 1100;
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.5);
+    g.gain.setValueAtTime(vol, t + dur - 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.3);
+    o.connect(f).connect(g).connect(MUSIC.bus); o.start(t); o.stop(t + dur + 0.4);
+  }
+}
+function mFlute(t, n, dur, vol) { // shakuhachi-ish: breathy sine with a slow vibrato
+  const o = AC.createOscillator(), lfo = AC.createOscillator(), lg = AC.createGain();
+  o.type = 'sine'; o.frequency.value = mf(n); lfo.frequency.value = 5.2; lg.gain.value = mf(n) * 0.006;
+  lfo.connect(lg).connect(o.frequency);
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.12);
+  g.gain.setValueAtTime(vol, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(MUSIC.bus); o.start(t); lfo.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(); s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = mf(n) * 2; f.Q.value = 3;
+  mOut(s.connect(f), vol * 0.25, t, 0.05, 0.25); s.start(t); s.stop(t + 0.35);
+}
+function playStep(i, t) {
+  const bar = Math.floor(i / 16) % 8, st = i % 16, sec = Math.floor(bar / 2), hot = S.B && S.B.phase > 1;
+  if (st === 0 && bar % 2 === 0) mPad(t, CHORDS[sec].map(n => n + (hot ? 12 : 0)), STEP * 32, hot ? 0.022 : 0.018);
+  const r = ROOTS[sec];
+  const bassAt = { 0: r, 3: r, 6: r + 7, 8: r, 10: r + 12, 12: r + 7, 14: r };
+  if (bassAt[st] !== undefined) mBass(t, bassAt[st], STEP * 2.2, 0.09);
+  const taiko = hot ? [0, 3, 6, 8, 10, 11, 12, 14, 15] : [0, 6, 8, 11, 14];
+  if (taiko.includes(st)) mTaiko(t, (st === 0 || st === 8) ? 0.5 : 0.3);
+  if (hot && bar % 4 === 3 && st >= 12) mTaiko(t + STEP / 2, 0.22); // fill into the next phrase
+  if (st % 4 === 2) mWood(t, 0.05);
+  for (const [b, s2, n] of MELODY) if (b === bar && s2 === st) {
+    mKoto(t, n, 0.11);
+    if (hot) { mKoto(t, n - 12, 0.06); if (st % 8 === 0) mFlute(t, n - 12, STEP * 7, 0.05); }
+  }
+}
+function musicStart() {
+  if (!AC || !noiseBuf) return;
+  if (!MUSIC.bus) {
+    MUSIC.filt = AC.createBiquadFilter(); MUSIC.filt.type = 'lowpass'; MUSIC.filt.frequency.value = 16000;
+    MUSIC.bus = AC.createGain(); MUSIC.bus.gain.value = 0.0001;
+    MUSIC.bus.connect(MUSIC.filt).connect(master);
+  }
+  MUSIC.on = true; MUSIC.step = 0; MUSIC.next = AC.currentTime + 0.15;
+  MUSIC.bus.gain.cancelScheduledValues(AC.currentTime);
+  MUSIC.bus.gain.setTargetAtTime(0.9, AC.currentTime, 0.6);
+}
+function musicStop(fade) {
+  if (!MUSIC.bus) return;
+  MUSIC.on = false;
+  MUSIC.bus.gain.cancelScheduledValues(AC.currentTime);
+  MUSIC.bus.gain.setTargetAtTime(0.0001, AC.currentTime, (fade || 1) / 3);
+}
+function musicTick() {
+  if (!AC || !MUSIC.on) return;
+  if (MUSIC.next < AC.currentTime - 0.05) MUSIC.next = AC.currentTime + 0.05; // after a hidden tab, don't burst-play the backlog
+  while (MUSIC.next < AC.currentTime + 0.25) { playStep(MUSIC.step, MUSIC.next); MUSIC.next += STEP; MUSIC.step++; }
+  const frozen = S.B && S.B.state === 'stun';
+  MUSIC.filt.frequency.setTargetAtTime(frozen ? 700 : S.cutin > 0 ? 2200 : S.mode === 'paused' ? 1200 : 16000, AC.currentTime, 0.12);
 }
 function sfx(k) {
   if (!AC || muted) return;
@@ -749,7 +857,7 @@ function hurtPlayer(d, sx, sy, ground) {
   }
   return true;
 }
-function defeat() { S.mode = 'lose'; S.endT = 0; sfx('lose'); banner('Your party has fallen', 'The flames endure… for now', '#ff9a6b'); }
+function defeat() { S.mode = 'lose'; S.endT = 0; sfx('lose'); musicStop(2.5); banner('Your party has fallen', 'The flames endure… for now', '#ff9a6b'); }
 function switchTo(i, forced) {
   const P = S.P;
   if (i === S.active || !S.party[i] || S.party[i].hp <= 0) return;
@@ -2787,6 +2895,7 @@ function frame(now) {
     tbQ.textContent = P.burstCd > 0 ? P.burstCd.toFixed(1) : qr ? 'Burst' : Math.floor(P.energy / P.maxEnergy * 100) + '%';
     tbQ.classList.toggle('ready', qr);
   }
+  musicTick();
   render();
   requestAnimationFrame(frame);
 }
@@ -2794,13 +2903,17 @@ function frame(now) {
 /* ---------------- screens ---------------- */
 const titleEl = document.getElementById('title'), endEl = document.getElementById('end');
 const soundBtn = document.getElementById('sound');
-function toggleMute() { muted = !muted; soundBtn.textContent = muted ? 'Sound: Off' : 'Sound: On'; }
+function toggleMute() {
+  muted = !muted; soundBtn.textContent = muted ? 'Sound: Off' : 'Sound: On';
+  if (master) master.gain.setTargetAtTime(muted ? 0 : 0.32, AC.currentTime, 0.05);
+}
 soundBtn.addEventListener('click', () => { initAudio(); toggleMute(); soundBtn.blur(); });
 function startGame() {
   initAudio();
   newGame('play');
   titleEl.hidden = true; endEl.hidden = true;
   banner('Pyrrhos, the Scorched Sovereign', 'Melt his flames. Break his Aegis.', '#e6c67a');
+  musicStart();
   cvs.focus && cvs.focus();
 }
 document.getElementById('start').addEventListener('click', startGame);
@@ -2811,7 +2924,7 @@ document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', 
   const el = document.getElementById(b.dataset.go); if (el) el.scrollIntoView({ block: 'start' });
 }));
 document.getElementById('again').addEventListener('click', startGame);
-document.getElementById('menu').addEventListener('click', () => { endEl.hidden = true; newGame('title'); titleEl.hidden = false; titleEl.scrollTop = 0; });
+document.getElementById('menu').addEventListener('click', () => { musicStop(0.5); endEl.hidden = true; newGame('title'); titleEl.hidden = false; titleEl.scrollTop = 0; });
 // difficulty picker on the cover
 const diffNote = document.getElementById('diffNote');
 function setDiff(k) {
@@ -2824,7 +2937,7 @@ setDiff(diffKey);
 cvs.addEventListener('click', () => { if (S.mode === 'paused') S.mode = 'play'; });
 function victory() {
   if (S.mode !== 'play') return;
-  S.mode = 'win'; sfx('win');
+  S.mode = 'win'; sfx('win'); musicStop(2);
   showEnd(true);
 }
 function showEnd(win) {
