@@ -3,7 +3,7 @@
 A Genshin Impact–inspired boss fight in one HTML file. You lead a party of two against **Pyrrhos, the Scorched Sovereign**, a Pyro boss:
 
 - **Yukina, the Frostbloom Maiden** (Cryo): a melee sword fighter. Her slashes are physical and only land within reach of the boss (she steps in a little when close). Frostfan Gale (E, 10s cooldown) sends an icy gust from her fan into the boss and frost-infuses her sword for 6s, so slashes apply Cryo. Eternal Winter Waltz (Q, 16s cooldown, needs 60 energy) is 3s of blizzard around her that hits hard, blows away fireballs, and makes her sword 2.2x stronger with longer reach.
-- **Mizuha** (Hydro): a long-range support. Her attack is a stream of bubbles that drift to the boss from anywhere but hit lightly (well under half of Yukina's damage). Tide Sprite (E) is a water koi that keeps attacking for 6s even after you switch out, also at low damage. Tidal Lullaby (Q) sends a tide rolling out from her to the cave walls: it hits the boss once, heals both characters 30% + 150 HP, and for the next 3s each of her attacks heals both a little more.
+- **Mizuha** (Hydro): a long-range support. Her attack is a stream of bubbles that drift to the boss from anywhere but hit lightly (well under half of Yukina's damage). Tide Sprite (E) is a water koi that keeps attacking for 6s even after you switch out, also at low damage. Tidal Lullaby (Q) sends a tide rolling out from her to the cave walls: it hits the boss once, heals both characters 20% + 80 HP, and for the next 3s each of her attacks heals both a little more.
 
 Character and boss art (in-battle sprites, Elemental Burst poses, the boss's normal / attack / burst / defence / downed states, and fireball, eruption, rock-burst and lava-pool effects) is embedded in `index.html` as WebP data. Open `index.html` in a browser to play. There is no build step.
 
@@ -16,7 +16,7 @@ Character and boss art (in-battle sprites, Elemental Burst poses, the boss's nor
 | 1 / 2 | Switch to Yukina / Mizuha (0.8s cooldown; a downed character can't be picked) |
 | E | Elemental Skill (Yukina): Frostfan Gale, an icy gust from her fan into the boss; her sword is frost-infused for 6s |
 | E | Elemental Skill (Mizuha): Tide Sprite, a 6s water spirit that keeps firing while the other character is on the field |
-| Q | Elemental Burst (Mizuha): Tidal Lullaby, a tide wave that hits once and heals both characters 30% + 150 HP; for 3s after, each of her attacks heals both by 2.5% + 10 |
+| Q | Elemental Burst (Mizuha): Tidal Lullaby, a tide wave that hits once and heals both characters 20% + 80 HP; for 3s after, each of her attacks heals both by 1.5% + 5 |
 | Q | Elemental Burst (Yukina): Eternal Winter Waltz, 3s of strong ice wind over a wide area; sword damage x2.2 and damage taken -40% while it lasts |
 | Space | Jump: while airborne, ground attacks (shockwaves, fire trails, eruptions, meteors, the charge) miss you |
 | Shift (hold) | Run: 65% faster, drains stamina |
@@ -29,11 +29,13 @@ The key legend stays on screen during the fight. Touch controls (joystick and bu
 
 Pick Easy, Normal or Hard on the cover (the choice is remembered in your browser).
 
-| | Boss HP | Damage to you | Time between attacks | Projectiles |
-| --- | --- | --- | --- | --- |
-| Easy | 70% | 60% | 140% | slower, fewer |
-| Normal | 100% | 100% | 100% | as designed |
-| Hard | 140% | 145% | 70% | faster, more |
+| | Boss HP | Armour (plain hits) | Damage to you | Time between attacks | Projectiles | Aegis shield |
+| --- | --- | --- | --- | --- | --- | --- |
+| Easy | 26,000 | none | 85% | 120% | a bit slower | 90% |
+| Normal | 32,000 | blocks 20% | 120% | 90% | a bit faster | 115% |
+| Hard | 38,000 | blocks 40% | 170% | 62% | faster, more | 150% |
+
+Elemental reactions (Frozen, Melt, Vaporize) pierce half of his armour, and a frozen Pyrrhos takes 30% more damage, so higher difficulties reward combining the two characters. While his Aegis is up, every hit goes to the shield and his HP cannot drop.
 
 ## Arena
 

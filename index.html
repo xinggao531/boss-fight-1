@@ -168,9 +168,9 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
           <dt class="is-cryo">Yukina</dt>
           <dd><b>Attack</b> sword combo, must be in reach. <b>E</b> Frostfan Gale: an icy gust from her fan, then 6s of frost-infused slashes. <b>Q</b> Winter Waltz: 3s of blizzard and a 2.2× sword.</dd>
           <dt class="is-hydro">Mizuha</dt>
-          <dd><b>Attack</b> long-range bubbles, light damage. <b>E</b> Tide Sprite: a water koi that keeps attacking for 6s after you switch. <b>Q</b> Tidal Lullaby: a tide that hits once and heals both; her attacks keep healing for 3s.</dd>
+          <dd><b>Attack</b> long-range bubbles, light damage. <b>E</b> Tide Sprite: a water koi that keeps attacking for 6s after you switch. <b>Q</b> Tidal Lullaby: a tide that hits once and heals both; her attacks keep healing a little for 3s.</dd>
           <dt>Reactions</dt>
-          <dd>Cryo on Hydro, or Hydro on Cryo: <b>Frozen</b>. Hit his flames for Melt (Cryo 1.5×) and Vaporize (Hydro 2×). Jump over shockwaves and fire.</dd>
+          <dd>Cryo on Hydro, or Hydro on Cryo: <b>Frozen</b>. Hit his flames for Melt (Cryo 1.5×) and Vaporize (Hydro 2×). Reactions pierce half his armour and a frozen Pyrrhos takes 30% more damage. His Aegis shield must break before his HP drops. Jump over shockwaves and fire.</dd>
         </dl>
       </details>
       <p class="note">On a phone, turn it sideways. Touch controls appear automatically.</p>
@@ -355,12 +355,13 @@ try { if (matchMedia('(pointer: coarse)').matches) enableTouch(); } catch (e) {}
 const BOSS_HP = 20000;
 // Difficulty: boss HP, damage to the party, time between attacks, projectile speed, shield size, extra projectiles
 const DIFFS = {
-  easy:   { label: 'Easy',   hp: 0.7, dmg: 0.6,  pace: 1.4, speed: 0.85, shield: 0.7, extra: -1,
-            note: 'Pyrrhos has 30% less HP, hits 40% softer and pauses longer between attacks.' },
-  normal: { label: 'Normal', hp: 1,   dmg: 1,    pace: 1,   speed: 1,    shield: 1,   extra: 0,
-            note: 'The intended challenge: learn his tells and freeze him at the right moments.' },
-  hard:   { label: 'Hard',   hp: 1.4, dmg: 1.45, pace: 0.7, speed: 1.15, shield: 1.3, extra: 1,
-            note: '40% more HP, heavier hits, faster attacks and denser fire.' }
+  // def = share of damage Pyrrhos actually takes from ordinary hits (reactions pierce half of his defence)
+  easy:   { label: 'Easy',   hp: 1.3,  dmg: 0.85, pace: 1.2,  speed: 0.95, shield: 0.9,  extra: 0, def: 1,
+            note: 'A fair fight: no armour, softer hits and more time between attacks.' },
+  normal: { label: 'Normal', hp: 1.6,  dmg: 1.2,  pace: 0.9,  speed: 1.05, shield: 1.15, extra: 0, def: 0.8,
+            note: 'His rock hide blocks 20% of plain damage. Use reactions and dodge his tells.' },
+  hard:   { label: 'Hard',   hp: 1.9,  dmg: 1.7,  pace: 0.62, speed: 1.2,  shield: 1.5,  extra: 1, def: 0.6,
+            note: 'Armour blocks 40% of plain damage and his fire hits very hard. Only freezes, melts and clean dodging win.' }
 };
 let diffKey = 'normal';
 try { const v = localStorage.getItem('fw-difficulty'); if (DIFFS[v]) diffKey = v; } catch (e) {}
@@ -430,7 +431,7 @@ function dealBoss(base, x, y, kind, el) {
   if (B.dead || S.mode !== 'play') return false;
   if (B.invuln > 0) { if (!(S.immT > S.anim)) { popText(x, y, 'Immune', '#c9d3e6', 18); S.immT = S.anim + 0.5; } return false; }
   let dmg = base * rand(0.92, 1.08);
-  const crit = Math.random() < 0.45;
+  const crit = Math.random() < 0.35;
   if (crit) dmg *= 2.0;
   B.hitFlash = 0.08;
   if (B.shield > 0) {
@@ -458,6 +459,10 @@ function dealBoss(base, x, y, kind, el) {
       else { B.el = el; B.elT = 7; }
     } else { B.el = el; B.elT = 7; }
   }
+  // armour: plain hits take the full defence, reactions pierce half of it, and a frozen boss is brittle (+30%)
+  const def = D().def;
+  dmg *= label ? (1 + def) / 2 : def;
+  if (B.state === 'stun' && B.stunKind === 'freeze' && label !== 'Frozen') dmg *= 1.3;
   dmg = Math.round(dmg);
   B.hp -= dmg; S.stats.dmg += dmg; S.stats.maxHit = Math.max(S.stats.maxHit, dmg);
   popText(x, y, dmg, color, crit ? 30 : 21, label);
@@ -656,7 +661,7 @@ function updPlayer(dt) {
       // Tidal Blessing: for 3s after her burst, every attack heals both girls a little
       if (S.healT > 0) {
         for (const c of S.party) if (c.hp > 0) {
-          const h = Math.round(c.maxHp * 0.025 + 10);
+          const h = Math.round(c.maxHp * 0.015 + 5);
           c.hp = Math.min(c.maxHp, c.hp + h);
           if (c === ch) popText(P.x, P.y - 130 - P.z, '+' + h, '#9ff59a', 15);
         }
@@ -725,7 +730,7 @@ function startHeal() {
   S.tide = { x: P.x, y: P.y, r: 20, t: 0, hit: false };
   for (const c of S.party) {
     if (c.hp <= 0) continue;
-    const h = Math.round(c.maxHp * 0.3 + 150);
+    const h = Math.round(c.maxHp * 0.2 + 80);
     c.hp = Math.min(c.maxHp, c.hp + h);
     if (c === S.party[S.active]) popText(P.x, P.y - 90 - P.z, '+' + h, '#9ff59a', 26);
   }
@@ -2245,9 +2250,11 @@ function drawHUD(g) {
   // phase threshold markers
   g.fillStyle = 'rgba(255,255,255,0.55)'; g.fillRect(bx + bw * 0.55, by - 2, 1.5, 14); g.fillRect(bx + bw * 0.25, by - 2, 1.5, 14);
   if (B.shield > 0) {
+    g.fillStyle = 'rgba(20,10,5,0.45)'; g.fillRect(bx, by, bw, 10);
+    g.strokeStyle = '#ffb347'; g.lineWidth = 1.5; g.strokeRect(bx - 1.5, by - 1.5, bw + 3, 13);
     bar(g, bx, by + 14, bw, 5, B.shield / B.maxShield, '#ffb347');
     g.font = `700 11px ${FONT_U}`; g.textAlign = 'center'; g.fillStyle = '#ffd9a0';
-    g.fillText('Blazing Aegis', CX, by + 34);
+    g.fillText('Blazing Aegis · HP protected until it breaks', CX, by + 34);
   }
   if (B.state === 'stun' && !B.dead) {
     g.font = `800 12px ${FONT_U}`; g.textAlign = 'center'; g.fillStyle = '#bfe9ff';
