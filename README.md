@@ -49,6 +49,6 @@ The fight takes place in **Magma Hollow**, Pyrrhos's lava cave: a basalt platfor
 - **Party:** both characters' cooldowns tick while benched. Energy particles give 60% to the benched character. If the active character falls, the other one switches in.
 
 - **Melt:** Pyrrhos is Pyro-affected when he attacks (unless Cryo or Hydro is already on him). Cryo hits then Melt for 1.5× damage.
-- **Blazing Aegis:** below 55% HP (and again at 25%) he gains a shield. Elemental hits do 2.5× damage to it (physical slashes do normal damage), and breaking it freezes him for 5.5s.
+- **Blazing Aegis:** below 55% HP (and again at 25%) he gains a shield. It counts hits, not damage: physical slashes are blocked, and every Cryo or Hydro hit takes off exactly one point (60 points at 55%, 45 at 25%, scaled by difficulty). Breaking it freezes him for 5.5s.
 - **Boss animation:** Pyrrhos breathes while idle, winds up with a "!" cue, lunges into the attack pose for volleys and eruptions, curls into his rock-ball defence form to roll through his charge and while his Aegis is up, flares into his burst form for shockwaves, meteors and spirals, turns icy when Frozen, and collapses when his shield breaks or he's defeated.
 - **Attacks:** fireball volleys, a telegraphed charge that leaves fire, eruptions, and shockwave rings you can dash through. Phase II adds a meteor rain and a bullet spiral.

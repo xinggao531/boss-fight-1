@@ -170,7 +170,7 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
           <dt class="is-hydro">Mizuha</dt>
           <dd><b>Attack</b> long-range bubbles, light damage. <b>E</b> Tide Sprite: a water koi that keeps attacking for 6s after you switch. <b>Q</b> Tidal Lullaby: a tide that hits once and heals both; her attacks keep healing a little for 3s.</dd>
           <dt>Reactions</dt>
-          <dd>Cryo on Hydro, or Hydro on Cryo: <b>Frozen</b>. Hit his flames for Melt (Cryo 1.5×) and Vaporize (Hydro 2×). Reactions pierce half his armour and a frozen Pyrrhos takes 30% more damage. His Aegis shield must break before his HP drops. Jump over shockwaves and fire.</dd>
+          <dd>Cryo on Hydro, or Hydro on Cryo: <b>Frozen</b>. Hit his flames for Melt (Cryo 1.5×) and Vaporize (Hydro 2×). Reactions pierce half his armour and a frozen Pyrrhos takes 30% more damage. His Aegis shield must break before his HP drops: physical hits are blocked, and every Cryo or Hydro hit takes off one point. Jump over shockwaves and fire.</dd>
         </dl>
       </details>
       <p class="note">On a phone, turn it sideways. Touch controls appear automatically.</p>
@@ -435,9 +435,15 @@ function dealBoss(base, x, y, kind, el) {
   if (crit) dmg *= 2.0;
   B.hitFlash = 0.08;
   if (B.shield > 0) {
-    const sd = Math.round(dmg * (el ? 2.5 : 1));
-    B.shield -= sd;
-    popText(x, y, sd, dmgColor(el, crit), crit ? 26 : 20, 'Aegis');
+    // The Aegis counts hits, not damage: every Cryo or Hydro hit chips off one point; physical hits are blocked
+    if (!el) {
+      if (!(S.blockT > S.anim)) { popText(x, y, 'Blocked', '#c9d3e6', 16); S.blockT = S.anim + 0.4; }
+      spray(x, y, 4, { color: ['#ffd9a0', '#ffffff'], smin: 60, smax: 160, lmax: 0.25, zmax: 2.5 });
+      sfx('hit');
+      return true;
+    }
+    B.shield -= 1;
+    popText(x, y, '−1', dmgColor(el, crit), 15, 'Aegis');
     spray(x, y, 6, { color: PYRO_C.concat(CRYO_C), smin: 80, smax: 220, shape: 'shard', lmax: 0.5 });
     if (B.shield <= 0) { B.shield = 0; shieldBreak(); }
     return true;
@@ -471,8 +477,8 @@ function dealBoss(base, x, y, kind, el) {
   if (B.hp <= 0) { B.hp = 0; killBoss(); return true; }
   if (B.phase === 1 && B.hp < B.maxHp * 0.55) enterPhase2();
   else if (B.phase === 2 && !B.reshield && B.hp < B.maxHp * 0.25 && B.state !== 'stun') {
-    B.reshield = true; B.shield = B.maxShield = Math.round(2600 * D().shield); toState('roar');
-    banner('The Aegis reignites', 'Break it again with Cryo', '#ffb07a');
+    B.reshield = true; B.shield = B.maxShield = Math.round(45 * D().shield); toState('roar');
+    banner('The Aegis reignites', 'Only Cryo or Hydro hits wear it down', '#ffb07a');
   }
   return true;
 }
@@ -485,10 +491,10 @@ function freezeBoss() {
 }
 function enterPhase2() {
   const B = S.B;
-  B.phase = 2; B.shield = B.maxShield = Math.round(3600 * D().shield); B.invuln = 1.6;
+  B.phase = 2; B.shield = B.maxShield = Math.round(60 * D().shield); B.invuln = 1.6;
   S.foes.length = 0;
   toState('roar');
-  banner('Pyrrhos ignites his Blazing Aegis', 'Cryo deals 2.5× damage to shields', '#ffb07a');
+  banner('Pyrrhos ignites his Blazing Aegis', 'Physical hits are blocked; each Cryo or Hydro hit counts as one', '#ffb07a');
 }
 function shieldBreak() {
   const B = S.B;
@@ -2254,7 +2260,7 @@ function drawHUD(g) {
     g.strokeStyle = '#ffb347'; g.lineWidth = 1.5; g.strokeRect(bx - 1.5, by - 1.5, bw + 3, 13);
     bar(g, bx, by + 14, bw, 5, B.shield / B.maxShield, '#ffb347');
     g.font = `700 11px ${FONT_U}`; g.textAlign = 'center'; g.fillStyle = '#ffd9a0';
-    g.fillText('Blazing Aegis · HP protected until it breaks', CX, by + 34);
+    g.fillText('Blazing Aegis · ' + Math.ceil(B.shield) + ' Cryo/Hydro hits to break · HP protected', CX, by + 34);
   }
   if (B.state === 'stun' && !B.dead) {
     g.font = `800 12px ${FONT_U}`; g.textAlign = 'center'; g.fillStyle = '#bfe9ff';
