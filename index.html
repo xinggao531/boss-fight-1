@@ -112,10 +112,10 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
         <b>Freezes</b> him. Hit his <span class="pyro">Pyro</span> flames for Melt and Vaporize.</p>
       <dl class="keys">
         <dt><kbd>WASD</kbd></dt><dd>Move</dd>
-        <dt><kbd>Click</kbd> / <kbd>J</kbd></dt><dd>Attack · Frost Shards home in on the boss (hold)</dd>
+        <dt><kbd>Click</kbd> / <kbd>J</kbd></dt><dd>Attack · Yukina: sword combo, get in reach · Mizuha: homing water orbs (hold)</dd>
         <dt><kbd>1</kbd> / <kbd>2</kbd></dt><dd>Switch to Yukina / Mizuha</dd>
-        <dt><kbd>E</kbd></dt><dd>Skill · Yukina: Frostbloom · Mizuha: Tide Sprite (keeps attacking 6s after you switch)</dd>
-        <dt><kbd>Q</kbd></dt><dd>Burst · Yukina: Winter Waltz · Mizuha: Tidal Lullaby (heals the party)</dd>
+        <dt><kbd>E</kbd></dt><dd>Skill · Yukina: Frostfan Gale, an icy gust that frost-infuses her sword for 6s · Mizuha: Tide Sprite (keeps attacking 6s after you switch)</dd>
+        <dt><kbd>Q</kbd></dt><dd>Burst · Yukina: Winter Waltz, 3s of blizzard and a much stronger sword · Mizuha: Tidal Lullaby (heals the party)</dd>
         <dt><kbd>Space</kbd></dt><dd>Jump · clears shockwaves, fire and eruptions</dd>
         <dt><kbd>Shift</kbd></dt><dd>Run (hold, uses stamina)</dd>
         <dt><kbd>C</kbd> / <kbd>Right-click</kbd></dt><dd>Dash (invulnerable, uses stamina)</dd>
@@ -238,6 +238,7 @@ function sfx(k) {
     case 'water': tone(700, 0.12, 'sine', 0.07, 0.6); noise(0.08, 0.04, 1800, 'bandpass'); break;
     case 'freeze': tone(2200, 0.4, 'triangle', 0.07, 0.5); noise(0.4, 0.2, 3000, 'highpass'); break;
     case 'swap': tone(660, 0.12, 'sine', 0.06, 1.5); tone(990, 0.16, 'sine', 0.04, 1.3, 0.05); break;
+    case 'slash': noise(0.12, 0.12, 3200, 'bandpass'); tone(1200, 0.08, 'triangle', 0.03, 0.5); break;
     case 'jump': tone(520, 0.14, 'sine', 0.06, 1.8); break;
     case 'dash': noise(0.16, 0.1, 2600, 'highpass'); break;
     case 'break': noise(0.7, 0.35, 2200, 'highpass'); tone(1760, 0.6, 'triangle', 0.08, 0.4); tone(260, 0.7, 'sawtooth', 0.08, 0.4); break;
@@ -296,8 +297,8 @@ try { if (matchMedia('(pointer: coarse)').matches) enableTouch(); } catch (e) {}
 /* ---------------- game state ---------------- */
 const BOSS_HP = 20000;
 const CHARS = [
-  { id: 'yukina', name: 'Yukina', el: 'cryo', maxHp: 1200, maxEnergy: 60, skillMax: 7, burstMax: 16,
-    skillName: 'Frostbloom', burstName: 'Eternal Winter Waltz', color: '#6fd3f7' },
+  { id: 'yukina', name: 'Yukina', el: 'cryo', maxHp: 1200, maxEnergy: 60, skillMax: 10, burstMax: 12,
+    skillName: 'Frostfan Gale', burstName: 'Eternal Winter Waltz', color: '#6fd3f7' },
   { id: 'mizuha', name: 'Mizuha', el: 'hydro', maxHp: 1400, maxEnergy: 70, skillMax: 10, burstMax: 18,
     skillName: 'Tide Sprite', burstName: 'Tidal Lullaby', color: '#5fb6ff' }
 ];
@@ -310,13 +311,14 @@ function newGame(mode) {
     mode, t: 0, anim: 0, shake: 0, hitStop: 0, cutin: 0, banner: null, endT: 0,
     P: { x: CX - 260, y: CY + 90, r: 16, hp: 1200, maxHp: 1200, hpShown: 1200, sta: 100, staDelay: 0, energy: 20, maxEnergy: 60,
       face: 1, dirx: 1, diry: 0, moving: false, atkCd: 0, combo: 0, comboT: 0, skillCd: 0, burstCd: 0, burstT: 0, burstTick: 0,
-      dashT: 0, dashCd: 0, dashDx: 1, dashDy: 0, iframe: 0, dashIframe: 0, hurtT: 0, castT: 0, evadeT: 0, z: 0, vz: 0, running: false, runLock: false, swapCd: 0, swapFx: 0 },
+      dashT: 0, dashCd: 0, dashDx: 1, dashDy: 0, iframe: 0, dashIframe: 0, hurtT: 0, castT: 0, evadeT: 0, z: 0, vz: 0, running: false, runLock: false, swapCd: 0, swapFx: 0, swingT: 0, lungeT: 0, lungeDx: 0, lungeDy: 0, farT: 0 },
     B: { x: CX + 170, y: CY - 50, r: 62, hp: BOSS_HP, maxHp: BOSS_HP, hpShown: BOSS_HP, shield: 0, maxShield: 1,
       phase: 1, state: 'idle', t: 0, sub: 0, idleDur: 1.6, tx: CX, ty: CY - 40, el: null, elT: 0, freezeCd: 0, stunKind: 'break', stun: 0, hitFlash: 0,
       invuln: 0, glow: 0, cdx: 1, cdy: 0, hitPlayer: false, spin: 0, last: '', reshield: false, dead: false, deathT: 0, trailT: 0, kick: 0, popT: 0, rollA: 0, pose: '' },
     shots: [], foes: [], hazards: [], rings: [], parts: [], texts: [], orbs: [], blooms: [],
     stats: { dmg: 0, maxHit: 0, melts: 0, taken: 0 },
-    party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 20, skillCd: 0, burstCd: 0 })),
+    party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 20, skillCd: 0, burstCd: 0, infuseT: 0 })),
+    slashes: [], gusts: [],
     active: 0, sprite: null, healT: 0, healTick: 0, cutinChar: 0
   };
   // P.hp, P.energy, P.skillCd … always refer to whoever is on the field
@@ -354,7 +356,7 @@ function dealBoss(base, x, y, kind, el) {
   if (crit) dmg *= 2.0;
   B.hitFlash = 0.08;
   if (B.shield > 0) {
-    const sd = Math.round(dmg * 2.5);
+    const sd = Math.round(dmg * (el ? 2.5 : 1));
     B.shield -= sd;
     popText(x, y, sd, '#ffe0b0', crit ? 26 : 20, 'Aegis');
     spray(x, y, 6, { color: PYRO_C.concat(CRYO_C), smin: 80, smax: 220, shape: 'shard', lmax: 0.5 });
@@ -475,8 +477,9 @@ function updPlayer(dt) {
   if (P.moving) { P.dirx = mx / ml; P.diry = my / ml; }
 
   for (const k of ['atkCd', 'dashCd', 'iframe', 'dashIframe', 'hurtT', 'castT', 'evadeT', 'staDelay', 'swapCd', 'swapFx']) P[k] = Math.max(0, P[k] - dt);
+  for (const k of ['swingT', 'farT']) P[k] = Math.max(0, P[k] - dt);
   for (const c of S.party) {
-    c.skillCd = Math.max(0, c.skillCd - dt); c.burstCd = Math.max(0, c.burstCd - dt);
+    c.skillCd = Math.max(0, c.skillCd - dt); c.burstCd = Math.max(0, c.burstCd - dt); c.infuseT = Math.max(0, c.infuseT - dt);
     if (c.hp > 0) c.energy = Math.min(c.maxEnergy, c.energy + dt * 0.6);
   }
   if (pressed['1']) switchTo(0);
@@ -522,6 +525,7 @@ function updPlayer(dt) {
   } else {
     const sp = 270 * (P.running ? 1.65 : P.atkCd > 0 ? 0.78 : 1) * (P.burstT > 0 ? 1.1 : 1);
     vx = mx * sp; vy = my * sp * 0.8;
+    if (P.lungeT > 0) { P.lungeT -= dt; if (gdist(P.x, P.y, S.B.x, S.B.y) < 120) P.lungeT = 0; else { vx += P.lungeDx * 560; vy += P.lungeDy * 560; } }
   }
   P.x += vx * dt; P.y += vy * dt; clampArena(P, 0.96);
 
@@ -536,10 +540,18 @@ function updPlayer(dt) {
     const ang = Math.atan2(aim.y - sy, aim.x - sx);
     const step = P.combo; P.combo = (P.combo + 1) % 4; P.comboT = 0.9;
     if (ch.el === 'cryo') {
-      if (step < 3) { fireShard(sx, sy, ang, 58 + step * 10, null, 'cryo'); P.atkCd = 0.25; }
-      else { for (let i = -2; i <= 2; i++) fireShard(sx, sy, ang + i * 0.11, 46, null, 'cryo'); P.atkCd = 0.55; }
-      spray(sx, sy, 5, { color: CRYO_C, ang, spread: 0.6, smin: 60, smax: 200, lmax: 0.3 });
-      sfx('shard');
+      // melee sword combo: 3 slashes and a spinning finisher; only lands when she's in reach
+      const B = S.B, strong = P.burstT > 0, frost = ch.infuseT > 0;
+      const reach = strong ? 200 : 160;
+      const d = gdist(P.x, P.y, B.x, B.y);
+      if (d > reach && d < reach + 120) { // short step-in toward the boss
+        // aim for a spot just in front of him so she stays visible
+        const a2 = Math.atan2(B.y + 60 - P.y, B.x - P.x); P.lungeDx = Math.cos(a2); P.lungeDy = Math.sin(a2) * 0.8; P.lungeT = 0.13;
+      }
+      S.slashes.push({ t: 0, step, ang: Math.atan2(B.y - 80 - (P.y - 45 - P.z), B.x - P.x), strong, frost, reach, done: false,
+        dmg: (step < 3 ? 88 + step * 12 : 170) * (strong ? 2.2 : 1) * (frost ? 1.15 : 1) });
+      P.atkCd = step < 3 ? 0.3 : 0.55; P.swingT = 0.45;
+      sfx('slash');
     } else {
       if (step < 3) { fireShard(sx, sy, ang + (step - 1) * 0.5, 66 + step * 8, null, 'hydro'); P.atkCd = 0.28; }
       else { for (let i = -1; i <= 1; i++) fireShard(sx, sy, ang + i * 0.5, 62, null, 'hydro'); P.atkCd = 0.55; }
@@ -551,8 +563,11 @@ function updPlayer(dt) {
   if (pressed.e && P.skillCd <= 0) {
     P.skillCd = ch.skillMax; P.castT = 0.35;
     if (ch.el === 'cryo') {
-      S.blooms.push({ x: S.B.x, y: S.B.y, t: 0, done: false });
-      spray(P.x + P.face * 16, P.y - 44, 14, { color: CRYO_C, smin: 40, smax: 160, shape: 'flake', lmax: 0.6 });
+      // Frostfan Gale: an icy gust from her fan to the boss, then 6s of frost-infused slashes
+      const fx = P.x - P.face * 30, fy = P.y - 92 - P.z;
+      S.gusts.push({ x: fx, y: fy, ox: fx, oy: fy, t: 0, done: false });
+      ch.infuseT = 6; P.swingT = 0;
+      spray(fx, fy, 18, { color: CRYO_C, smin: 60, smax: 220, shape: 'flake', lmax: 0.6 });
     } else {
       // Tide Sprite: a water spirit that circles the boss and keeps firing for 6s, even after you switch out
       S.sprite = { t: 6, cd: 0.25, x: P.x, y: P.y - 60 };
@@ -582,25 +597,24 @@ function updPlayer(dt) {
   if (P.burstT > 0) {
     P.burstT -= dt; P.burstTick -= dt;
     if (P.burstTick <= 0) {
-      P.burstTick = 0.3;
-      const a = rand(0, TAU), r = rand(60, 200);
-      const sx = P.x + Math.cos(a) * r, sy = P.y - 40 - P.z + Math.sin(a) * r * GY;
-      fireShard(sx, sy, a, 105, 'tick', 'cryo');
+      P.burstTick = 0.2;
+      if (!S.B.dead && gdist(P.x, P.y, S.B.x, S.B.y) < BURST_R + 60) dealBoss(120, S.B.x + rand(-40, 40), S.B.y - 90 + rand(-40, 40), 'tick', 'cryo');
     }
-    // storm destroys fireballs
-    for (const f of S.foes) if (Math.hypot(f.x - P.x, (f.y - P.y + 30) / 0.8) < 200) { f.life = 0; spray(f.x, f.y, 5, { color: CRYO_C, lmax: 0.4 }); }
-    if (Math.random() < 0.9) {
-      const a = rand(0, TAU), r = rand(40, 250);
-      spray(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * GY - rand(0, 80), 1, { color: CRYO_C, ang: a + Math.PI / 2, spread: 0.2, smin: 150, smax: 300, shape: 'flake', lmin: 0.3, lmax: 0.7 });
+    // the gale blows fireballs apart
+    for (const f of S.foes) if (Math.hypot(f.x - P.x, (f.y - P.y + 30) / GY) < BURST_R) { f.life = 0; spray(f.x, f.y, 5, { color: CRYO_C, lmax: 0.4 }); }
+    for (let n = 0; n < 4; n++) {
+      const a = rand(0, TAU), r = rand(40, BURST_R);
+      spray(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * GY - rand(0, 90), 1, { color: CRYO_C, ang: a + Math.PI / 2, spread: 0.15, smin: 300, smax: 520, shape: 'flake', lmin: 0.25, lmax: 0.5, drag: 0.5 });
     }
   }
 }
+const BURST_R = 340; // Winter Waltz gale radius
 function startBurst() {
   const P = S.P;
-  P.burstT = 6; P.burstTick = 0.35;
+  P.burstT = 3; P.burstTick = 0.2;
   S.shake = 14;
   spray(P.x, P.y - 30, 80, { color: CRYO_C, smin: 200, smax: 620, shape: 'shard', lmin: 0.5, lmax: 1.1, zmax: 8, drag: 2.5 });
-  dealBoss(640, S.B.x, S.B.y - 80, null, 'cryo');
+  if (gdist(P.x, P.y, S.B.x, S.B.y) < BURST_R + 60) dealBoss(520, S.B.x, S.B.y - 80, null, 'cryo');
 }
 function startHeal() {
   const P = S.P;
@@ -650,6 +664,55 @@ function updShots(dt) {
     }
   }
   S.shots = S.shots.filter(s => s.life > 0);
+}
+function updSlashes(dt) {
+  const P = S.P, B = S.B, ch = S.party[S.active];
+  for (const sl of S.slashes) {
+    sl.t += dt;
+    if (!sl.done && sl.t >= 0.07) {
+      sl.done = true;
+      if (!B.dead && gdist(P.x, P.y, B.x, B.y) <= sl.reach) {
+        const hx = B.x + Math.cos(sl.ang) * -30 + rand(-20, 20), hy = B.y - 90 + rand(-25, 25);
+        if (dealBoss(sl.dmg, hx, hy, null, sl.frost ? 'cryo' : null)) {
+          P.energy = Math.min(P.maxEnergy, P.energy + 1.2);
+          S.shake = Math.max(S.shake, sl.strong ? 6 : 3);
+        }
+        spray(hx, hy, sl.strong ? 16 : 9, sl.frost || sl.strong
+          ? { color: CRYO_C, smin: 80, smax: 300, shape: 'shard', lmax: 0.45 }
+          : { color: ['#ffffff', '#e8eef5', '#c9d3e0'], smin: 80, smax: 260, lmax: 0.3, zmax: 3 });
+        sfx('hit');
+      } else if (P.farT <= 0 && ch.id === 'yukina') {
+        popText(P.x, P.y - 130 - P.z, 'Too far', '#c9d3e6', 15); P.farT = 1.2;
+      }
+    }
+  }
+  S.slashes = S.slashes.filter(sl => sl.t < 0.28);
+  for (const gu of S.gusts) {
+    gu.t += dt;
+    const tx = B.x, ty = B.y - 90, dx = tx - gu.x, dy = ty - gu.y, d = Math.hypot(dx, dy) || 1;
+    const sp = 700 + gu.t * 1600;
+    if (!gu.done) {
+      if (d < 40 || B.dead) {
+        gu.done = true; gu.hitT = gu.t;
+        if (!B.dead) {
+          dealBoss(300, tx, ty, null, 'cryo');
+          for (let i = 0; i < 3; i++) S.orbs.push({ x: B.x + rand(-40, 40), y: B.y - 70 + rand(-30, 30), vx: rand(-160, 160), vy: rand(-200, -60), t: 0 });
+        }
+        spray(tx, ty, 40, { color: CRYO_C, smin: 120, smax: 420, shape: 'flake', lmin: 0.4, lmax: 0.9, zmax: 6 });
+        S.shake = Math.max(S.shake, 7); sfx('bloom');
+      } else {
+        gu.x += dx / d * Math.min(d, sp * dt); gu.y += dy / d * Math.min(d, sp * dt);
+        // the gust scatters fireballs in its path
+        for (const f of S.foes) if (Math.hypot(f.x - gu.x, f.y - gu.y) < 50) { f.life = 0; spray(f.x, f.y, 5, { color: CRYO_C, lmax: 0.4 }); }
+        spray(gu.x, gu.y, 3, { color: CRYO_C, ang: Math.atan2(dy, dx) + Math.PI, spread: 0.5, smin: 60, smax: 200, shape: 'flake', lmin: 0.3, lmax: 0.6 });
+      }
+    }
+  }
+  S.gusts = S.gusts.filter(gu => !gu.done || gu.t - gu.hitT < 0.4);
+  // frost-infused sword glitters
+  const yk = S.party[0];
+  if (yk.infuseT > 0 && S.active === 0 && Math.random() < 0.5)
+    spray(P.x + P.face * rand(10, 40), P.y - rand(30, 80) - P.z, 1, { color: CRYO_C, ang: -Math.PI / 2, spread: 0.6, smin: 10, smax: 40, shape: 'flake', lmin: 0.4, lmax: 0.8 });
 }
 function updBlooms(dt) {
   const P = S.P, B = S.B;
@@ -826,8 +889,8 @@ function updBoss(dt) {
   }
   clampArena(B, 0.9);
   // body contact
-  if (B.state !== 'stun' && gdist(P.x, P.y, B.x, B.y) < 60) {
-    const a = Math.atan2(P.y - B.y, P.x - B.x); P.x = B.x + Math.cos(a) * 60 * 1.001; P.y = B.y + Math.sin(a) * 60 * GY;
+  if (!B.dead && gdist(P.x, P.y, B.x, B.y) < 95) {
+    const a = Math.atan2((P.y - B.y) / GY, P.x - B.x); P.x = B.x + Math.cos(a) * 95 * 1.001; P.y = B.y + Math.sin(a) * 95 * GY * 1.001;
   }
 }
 function updFoes(dt) {
@@ -1671,12 +1734,12 @@ function drawGroundFX(g) {
   if (P.burstT > 0) {
     const a = Math.min(1, P.burstT / 0.6);
     g.save(); g.globalAlpha = a;
-    const fg = g.createRadialGradient(P.x, P.y, 10, P.x, P.y, 260);
-    fg.addColorStop(0, 'rgba(200,240,255,0.28)'); fg.addColorStop(1, 'rgba(120,200,255,0)');
-    g.fillStyle = fg; ell(g, P.x, P.y, 260, 260 * GY); g.fill();
-    g.strokeStyle = 'rgba(180,235,255,0.7)'; g.lineWidth = 2;
-    g.setLineDash([18, 14]); g.lineDashOffset = -t * 80;
-    ell(g, P.x, P.y, 250, 250 * GY); g.stroke(); g.setLineDash([]);
+    const fg = g.createRadialGradient(P.x, P.y, 10, P.x, P.y, BURST_R);
+    fg.addColorStop(0, 'rgba(210,245,255,0.35)'); fg.addColorStop(1, 'rgba(120,200,255,0.05)');
+    g.fillStyle = fg; ell(g, P.x, P.y, BURST_R, BURST_R * GY); g.fill();
+    g.strokeStyle = 'rgba(190,240,255,0.8)'; g.lineWidth = 2.5;
+    g.setLineDash([22, 12]); g.lineDashOffset = -t * 160;
+    ell(g, P.x, P.y, BURST_R - 8, (BURST_R - 8) * GY); g.stroke(); g.setLineDash([]);
     g.restore();
   }
 }
@@ -1743,13 +1806,69 @@ function drawMeteors(g) {
     }
   }
 }
+function drawSlashes(g) {
+  const P = S.P;
+  for (const sl of S.slashes) {
+    const p = sl.t / 0.28, R0 = (sl.strong ? 118 : 84), cx = P.x + P.face * 8, cy = P.y - 50 - P.z;
+    // alternate up-swing / down-swing; the finisher is a full spin
+    const span = sl.step === 3 ? TAU : 2.2, dir = sl.step % 2 ? 1 : -1;
+    const start = sl.step === 3 ? sl.ang : sl.ang - dir * span / 2;
+    const sweep = Math.min(1, p * 2.2);
+    const a0 = start + dir * span * Math.max(0, sweep - 0.45), a1 = start + dir * span * sweep;
+    const alpha = 1 - Math.max(0, p - 0.5) * 2;
+    const col = sl.frost || sl.strong ? ['rgba(255,255,255,', 'rgba(140,220,255,'] : ['rgba(255,255,255,', 'rgba(200,210,225,'];
+    g.save();
+    // dark-blue edge so the arc reads against the bright boss, then a glowing blade trail
+    g.strokeStyle = `rgba(30,70,140,${alpha * 0.55})`; g.lineWidth = sl.strong ? 20 : 15; g.lineCap = 'round';
+    g.beginPath(); g.ellipse(cx, cy, R0, R0 * 0.7, 0, Math.min(a0, a1), Math.max(a0, a1)); g.stroke();
+    g.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 3; k++) {
+      g.strokeStyle = col[k ? 1 : 0] + (alpha * (1 - k * 0.2)) + ')';
+      g.lineWidth = (sl.strong ? 16 : 11) - k * 4; g.lineCap = 'round';
+      g.beginPath(); g.ellipse(cx, cy, R0 - k * 9, (R0 - k * 9) * 0.7, 0, Math.min(a0, a1), Math.max(a0, a1)); g.stroke();
+    }
+    g.restore();
+  }
+}
+function drawGusts(g) {
+  const t = S.anim;
+  for (const gu of S.gusts) {
+    const fade = gu.done ? Math.max(0, 1 - (gu.t - gu.hitT) / 0.4) : 1;
+    const ang = Math.atan2(gu.y - gu.oy, gu.x - gu.ox), len = Math.hypot(gu.x - gu.ox, gu.y - gu.oy);
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = fade;
+    g.translate(gu.ox, gu.oy); g.rotate(ang);
+    // widening cone of wind from the fan
+    const cg = g.createLinearGradient(0, 0, len, 0);
+    cg.addColorStop(0, 'rgba(200,240,255,0.05)'); cg.addColorStop(1, 'rgba(210,245,255,0.35)');
+    g.fillStyle = cg; g.beginPath(); g.moveTo(0, -6); g.lineTo(len, -44); g.lineTo(len, 44); g.lineTo(0, 6); g.closePath(); g.fill();
+    g.lineCap = 'round';
+    for (let k = 0; k < 6; k++) {
+      const o = ((t * 900 + k * 90) % Math.max(60, len)), w = (k - 2.5) * 12 * (o / Math.max(60, len)) ;
+      g.strokeStyle = `rgba(235,250,255,${0.5 + (k % 2) * 0.3})`; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(o - 40, w + Math.sin(t * 20 + k) * 4); g.quadraticCurveTo(o - 20, w - 6, o, w); g.stroke();
+    }
+    // swirling head
+    for (let k = 0; k < 3; k++) {
+      g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 3 - k;
+      g.beginPath(); g.ellipse(len, 0, 20 + k * 10, 30 + k * 12, 0, t * 12 + k * 2, t * 12 + k * 2 + 4); g.stroke();
+    }
+    g.restore();
+  }
+}
 function drawBurstShards(g) {
   const P = S.P;
   if (P.burstT <= 0) return;
-  const t = S.anim, a = Math.min(1, P.burstT / 0.6);
+  const t = S.anim, a = Math.min(1, P.burstT / 0.4, (3 - P.burstT) * 5);
   g.save(); g.globalAlpha = a;
+  // howling wind: arcs spinning around her
+  g.lineCap = 'round';
+  for (let i = 0; i < 14; i++) {
+    const r = 80 + (i % 7) * 40, a0 = t * (5 - (i % 3)) + i * 1.3, len = 0.9 + (i % 3) * 0.3;
+    g.strokeStyle = `rgba(230,250,255,${0.25 + (i % 4) * 0.12})`; g.lineWidth = 2 + (i % 3);
+    g.beginPath(); g.ellipse(P.x, P.y - 40 - (i % 4) * 10, r, r * GY, 0, a0, a0 + len); g.stroke();
+  }
   for (let i = 0; i < 18; i++) {
-    const ang = t * (i % 2 ? 2.2 : -1.6) + i * TAU / 18, r = 110 + (i % 3) * 55;
+    const ang = t * (i % 2 ? 4.4 : -3.2) + i * TAU / 18, r = 120 + (i % 3) * 80;
     const x = P.x + Math.cos(ang) * r, y = P.y - 30 + Math.sin(ang) * r * GY - (i % 4) * 14;
     g.save(); g.translate(x, y); g.rotate(ang + Math.PI / 2);
     const sg = g.createLinearGradient(0, -12, 0, 12);
@@ -1933,7 +2052,8 @@ function drawHUD(g) {
   g.fillStyle = P.hp / P.maxHp < 0.3 ? '#ff6b6b' : '#8fe06b'; g.fillRect(104, H - 50, 260 * P.hp / P.maxHp, 9);
   g.font = `800 11px ${FONT_U}`; g.fillStyle = '#dfe9f7';
   g.fillText(`${Math.ceil(P.hp)} / ${P.maxHp}`, 104, H - 28);
-  if (P.burstT > 0) { g.fillStyle = '#bfe9ff'; g.fillText('Winter Waltz · DMG taken −40%', 190, H - 28); }
+  if (P.burstT > 0) { g.fillStyle = '#bfe9ff'; g.fillText('Winter Waltz · sword ×2.2 · DMG taken −40%', 190, H - 28); }
+  else if (S.party[0].infuseT > 0 && S.active === 0) { g.fillStyle = '#9fe3ff'; g.fillText('Frost-infused sword · ' + S.party[0].infuseT.toFixed(1) + 's', 190, H - 28); }
   else if (S.healT > 0) { g.fillStyle = '#9ff5c8'; g.fillText('Tidal Lullaby · healing', 190, H - 28); }
   drawParty(g);
 
@@ -1946,7 +2066,7 @@ function drawHUD(g) {
   }
 }
 const LEGEND = [
-  ['WASD', 'Move'], ['Click / J', 'Attack (auto-aim)'], ['1 / 2', 'Switch character'], ['E', 'Elemental skill'], ['Q', 'Elemental burst'],
+  ['WASD', 'Move'], ['Click / J', 'Attack'], ['1 / 2', 'Switch character'], ['E', 'Elemental skill'], ['Q', 'Elemental burst'],
   ['Space', 'Jump'], ['Shift', 'Run (hold)'], ['C', 'Dash'], ['P', 'Pause'], ['M', 'Mute']
 ];
 function drawLegend(g) {
@@ -2133,13 +2253,15 @@ function render() {
     const blink = P.iframe > 0 && P.dashIframe <= 0 && P.swapFx <= 0 && Math.floor(S.anim * 20) % 2;
     g.save(); if (blink) g.globalAlpha = 0.45; if (P.dashT > 0) g.globalAlpha = 0.75;
     if (P.hp <= 0) { g.globalAlpha = 0.6; g.translate(P.x, P.y); g.rotate(-1.2 * P.face); g.translate(-P.x, -P.y); }
-    const who = S.party[S.active].id, burstPose = who === 'yukina' ? P.burstT > 0 : S.healT > 0;
+    const who = S.party[S.active].id, burstPose = who === 'yukina' ? (P.burstT > 0 || P.swingT > 0) : S.healT > 0;
     drawChar(g, P.x, P.y - P.z, burstPose ? 132 : 120, P.face, P.running ? S.anim * 1.5 : S.anim, { look: who, pose: burstPose, moving: (P.moving || P.dashT > 0) && P.z <= 0, dash: P.dashT > 0, cast: P.castT > 0, hurt: P.hurtT > 0 });
     g.restore();
   };
   if (P.y < B.y) { drawP(); drawBoss(g, B, S.anim); } else { drawBoss(g, B, S.anim); drawP(); }
   drawBloomPetals(g);
   drawBurstShards(g);
+  drawSlashes(g);
+  drawGusts(g);
   drawSprite(g);
   drawProjectiles(g);
   drawMeteors(g);
@@ -2191,6 +2313,7 @@ function frame(now) {
       updPlayer(dt);
       updShots(dt);
       updBlooms(dt);
+      updSlashes(dt);
       updBoss(dt);
       updFoes(dt);
       if (S.B.dead && S.B.deathT > 1.9) victory();
