@@ -44,10 +44,53 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
 .btn:hover{filter:brightness(1.07)}
 .btn:focus-visible{outline:3px solid var(--cryo);outline-offset:3px}
 .note{margin:12px 0 0;font-size:12px;color:var(--muted)}
-.end{max-width:520px;width:100%;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:30px 24px}
-.end h2{margin-bottom:6px}
-.rank{font:900 64px/1 var(--display);color:var(--gold);margin:8px 0 14px;text-shadow:0 0 24px rgba(230,198,122,.45)}
-.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 22px;text-align:left}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0;text-align:left}
+/* ---- results screen: victory is dawn-gold and icy, defeat is smouldering ember ---- */
+.end-overlay.is-win{background:radial-gradient(ellipse at 35% 45%,rgba(255,226,160,.28),rgba(20,30,60,.9) 60%,rgba(6,10,22,.96))}
+.end-overlay.is-lose{background:radial-gradient(ellipse at 35% 50%,rgba(150,30,10,.35),rgba(20,4,2,.92) 60%,rgba(6,2,1,.97))}
+.end-card{--acc:var(--gold);position:relative;display:grid;grid-template-columns:minmax(0,340px) minmax(0,420px);gap:10px 28px;align-items:center;
+  width:min(820px,100%);padding:26px 30px 26px 18px;border-radius:14px;border:1px solid;animation:endIn .6s cubic-bezier(.2,.8,.2,1) both}
+.end-card.is-win{border-color:rgba(230,198,122,.55);background:linear-gradient(160deg,rgba(24,34,64,.94),rgba(10,14,30,.96));
+  box-shadow:0 0 0 1px rgba(111,211,247,.18) inset,0 30px 90px rgba(0,0,0,.5),0 0 60px rgba(230,198,122,.18)}
+.end-card.is-lose{--acc:#ff8a4a;border-color:rgba(255,110,60,.45);background:linear-gradient(160deg,rgba(40,12,6,.95),rgba(14,4,2,.97));
+  box-shadow:0 30px 90px rgba(0,0,0,.6),0 0 50px rgba(255,80,30,.15)}
+@keyframes endIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.end-art{position:relative;height:320px;display:flex;align-items:flex-end;justify-content:center}
+.end-art img{position:absolute;bottom:0;height:300px;width:auto;max-width:none}
+.end-halo{position:absolute;left:50%;top:48%;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%}
+.is-win .end-halo{background:conic-gradient(from 0deg,rgba(230,198,122,.0),rgba(230,198,122,.35),rgba(111,211,247,.3),rgba(95,182,255,.0),rgba(230,198,122,.35),rgba(230,198,122,0));
+  filter:blur(18px);animation:halo 14s linear infinite}
+.is-lose .end-halo{background:radial-gradient(circle,rgba(255,120,40,.55),rgba(255,60,20,.15) 55%,rgba(0,0,0,0) 70%);animation:ember 2.4s ease-in-out infinite}
+@keyframes halo{to{transform:rotate(360deg)}}
+@keyframes ember{0%,100%{opacity:.7;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+.art-a{left:-4%;height:270px;transform:rotate(-4deg)} .art-b{right:-6%;height:262px;transform:rotate(4deg)}
+.art-lose{left:50%;transform:translateX(-50%);height:280px;filter:drop-shadow(0 0 26px rgba(255,90,30,.55))}
+.is-win .art-lose,.is-lose .art-win{display:none}
+.end-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.end-body .eyebrow{margin:0;color:var(--acc)}
+.end-body h2{margin:0;font:900 clamp(30px,4vw,44px)/1.05 var(--display)}
+.is-lose .end-body h2{background:linear-gradient(180deg,#ffe2cf,#ff9a6b 70%,#e0512a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.end-line{margin:0;font:italic 500 18px/1.45 "Cormorant Garamond",Georgia,serif;color:#e7dccd}
+.end-rank{display:flex;align-items:baseline;gap:12px}
+.end-rank span{font:700 11px var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.end-rank b{font:900 60px/1 var(--display);color:var(--gold);text-shadow:0 0 26px rgba(230,198,122,.55)}
+.is-lose .end-rank,.is-win .end-prog{display:none}
+.end-prog p{margin:6px 0 0;font-size:13px;color:#e0c7b8}
+.end-prog-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,138,74,.35)}
+.end-prog-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8fe0ff,#ffb454 60%,#ff6a3d);transition:width 1.2s cubic-bezier(.2,.8,.2,1) .3s}
+.end-body .stats div{padding:8px 10px;border-radius:8px;border:0;background:rgba(255,255,255,.05)}
+.end-body .stats span{font-size:10px}
+.end-body .stats strong{font-size:18px}
+.end-tip{margin:0;padding:9px 12px;border-left:2px solid var(--acc);background:rgba(255,255,255,.04);font-size:13px;line-height:1.5;color:#d9cfc4}
+.end-tip:empty{display:none}
+.end-body .end-actions{justify-content:flex-start}
+@media (max-width:760px){
+  .end-card{grid-template-columns:1fr;padding:18px;text-align:center}
+  .end-art{height:210px} .end-art img{height:200px} .art-b{height:192px} .art-lose{height:190px} .end-halo{width:220px;height:220px;margin:-110px 0 0 -110px}
+  .end-rank{justify-content:center} .end-body .end-actions{justify-content:center}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){.end-card,.end-halo{animation:none}.end-prog-bar i{transition:none}}
 .stats div{padding:10px 12px;border-top:1px solid rgba(191,233,255,.15)}
 .stats span{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .stats strong{font:800 20px/1.3 var(--ui);font-variant-numeric:tabular-nums;color:var(--ink)}
@@ -246,7 +289,7 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
           <li><kbd>E</kbd> Skill</li><li><kbd>Q</kbd> Burst</li><li><kbd>Space</kbd> Jump</li>
           <li><kbd>Shift</kbd> Run</li><li><kbd>C</kbd> Dash</li><li><kbd>P</kbd> Pause</li>
         </ul>
-        <p class="note">On a phone, turn it sideways. Touch controls appear automatically.</p>
+        <p class="note">On a phone, turn it sideways. Touch controls appear automatically. Music begins with your first tap or key press.</p>
       </div>
     </div>
     <button class="scroll-cue" type="button" data-go="story" aria-label="Scroll to the story"><span>The Tale</span><i aria-hidden="true"></i></button>
@@ -387,20 +430,34 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
   </div>
 </div>
 
-<div id="end" class="overlay" hidden>
-  <div class="end">
-    <p class="eyebrow" id="endEyebrow">Domain Challenge</p>
-    <h2 id="endTitle">Challenge Completed</h2>
-    <div class="rank" id="endRank">S</div>
-    <div class="stats">
-      <div><span>Clear time</span><strong id="stTime">0:00</strong></div>
-      <div><span>Highest hit</span><strong id="stMax">0</strong></div>
-      <div><span>Reactions</span><strong id="stMelt">0</strong></div>
-      <div><span>Damage taken</span><strong id="stTaken">0</strong></div>
+<div id="end" class="overlay end-overlay" hidden>
+  <div class="end-card" id="endCard" role="dialog" aria-labelledby="endTitle">
+    <div class="end-art" aria-hidden="true">
+      <span class="end-halo"></span>
+      <img class="art-win art-a" data-spr="yukina" alt="">
+      <img class="art-win art-b" data-spr="mizuha" alt="">
+      <img class="art-lose" data-spr="boss_burst" alt="">
     </div>
-    <div class="end-actions">
-      <button class="btn" id="again" type="button">Challenge Again</button>
-      <button class="btn ghost" id="menu" type="button">Change Difficulty</button>
+    <div class="end-body">
+      <p class="eyebrow" id="endEyebrow">Domain Challenge</p>
+      <h2 id="endTitle">Challenge Completed</h2>
+      <p class="end-line" id="endLine"></p>
+      <div class="end-rank"><span>Rank</span><b id="endRank">S</b></div>
+      <div class="end-prog">
+        <div class="end-prog-bar"><i id="endProgFill"></i></div>
+        <p id="endProgText"></p>
+      </div>
+      <div class="stats">
+        <div><span>Time</span><strong id="stTime">0:00</strong></div>
+        <div><span>Highest hit</span><strong id="stMax">0</strong></div>
+        <div><span>Reactions</span><strong id="stMelt">0</strong></div>
+        <div><span>Damage taken</span><strong id="stTaken">0</strong></div>
+      </div>
+      <p class="end-tip" id="endTip"></p>
+      <div class="end-actions">
+        <button class="btn" id="again" type="button">Challenge Again</button>
+        <button class="btn ghost" id="menu" type="button">Change Difficulty</button>
+      </div>
     </div>
   </div>
 </div>
@@ -575,16 +632,36 @@ function playStep(i, t) {
     if (hot) { mKoto(t, n - 12, 0.06); if (st % 8 === 0) mFlute(t, n - 12, STEP * 7, 0.05); }
   }
 }
-function musicStart() {
+/* The cover's theme: a slow, calm piece in the Japanese In scale (76 BPM, eighth notes): koto arpeggios,
+   a shakuhachi-style flute melody, a soft drone, a quiet taiko on the downbeat and the odd wind chime. */
+const TITLE_STEP = 60 / 76 / 2;
+const TITLE_ARPS = [[50, 57, 62, 69, 74, 69, 62, 57], [46, 53, 58, 62, 70, 62, 58, 53], [43, 50, 55, 62, 67, 62, 55, 50], [45, 52, 57, 63, 69, 63, 57, 52]];
+const TITLE_FLUTE = [ // [bar, step, note, length in steps]
+  [0, 0, 74, 4], [0, 4, 75, 2], [0, 6, 74, 2], [1, 0, 70, 6], [1, 6, 69, 2], [2, 0, 67, 4], [2, 4, 69, 2], [2, 6, 70, 2], [3, 0, 69, 8],
+  [4, 0, 79, 4], [4, 4, 77, 2], [4, 6, 75, 2], [5, 0, 74, 6], [5, 6, 70, 2], [6, 0, 72, 3], [6, 3, 70, 3], [6, 6, 69, 2], [7, 0, 62, 8]
+];
+function playTitleStep(i, t) {
+  const bar = Math.floor(i / 8) % 8, st = i % 8, arp = TITLE_ARPS[bar % 4], round = Math.floor(i / 64);
+  mKoto(t, arp[st], st === 0 ? 0.07 : 0.045);
+  if (st === 0) {
+    mPad(t, [arp[0], arp[0] + 7], TITLE_STEP * 8, 0.012);
+    mTaiko(t, 0.12);
+  }
+  if (st === 6 && bar % 2 === 1) mTaiko(t, 0.06);
+  if (round > 0 || bar >= 2) for (const [b, s2, n, len] of TITLE_FLUTE) if (b === bar && s2 === st) mFlute(t, n, TITLE_STEP * len, 0.05);
+  if (Math.random() < 0.12) { const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = mf(86 + [0, 3, 5, 7, 10][(Math.random() * 5) | 0]); mOut(o, 0.012, t + Math.random() * TITLE_STEP, 0.003, 1.4); o.start(t); o.stop(t + TITLE_STEP + 1.5); }
+}
+function musicStart(song) {
   if (!AC || !noiseBuf) return;
   if (!MUSIC.bus) {
     MUSIC.filt = AC.createBiquadFilter(); MUSIC.filt.type = 'lowpass'; MUSIC.filt.frequency.value = 16000;
     MUSIC.bus = AC.createGain(); MUSIC.bus.gain.value = 0.0001;
     MUSIC.bus.connect(MUSIC.filt).connect(master);
   }
+  MUSIC.song = song || 'battle';
   MUSIC.on = true; MUSIC.step = 0; MUSIC.next = AC.currentTime + 0.15;
   MUSIC.bus.gain.cancelScheduledValues(AC.currentTime);
-  MUSIC.bus.gain.setTargetAtTime(0.9, AC.currentTime, 0.6);
+  MUSIC.bus.gain.setTargetAtTime(MUSIC.song === 'title' ? 0.85 : 0.9, AC.currentTime, 0.6);
 }
 function musicStop(fade) {
   if (!MUSIC.bus) return;
@@ -595,7 +672,8 @@ function musicStop(fade) {
 function musicTick() {
   if (!AC || !MUSIC.on) return;
   if (MUSIC.next < AC.currentTime - 0.05) MUSIC.next = AC.currentTime + 0.05; // after a hidden tab, don't burst-play the backlog
-  while (MUSIC.next < AC.currentTime + 0.25) { playStep(MUSIC.step, MUSIC.next); MUSIC.next += STEP; MUSIC.step++; }
+  const title = MUSIC.song === 'title', len = title ? TITLE_STEP : STEP;
+  while (MUSIC.next < AC.currentTime + 0.25) { (title ? playTitleStep : playStep)(MUSIC.step, MUSIC.next); MUSIC.next += len; MUSIC.step++; }
   const frozen = S.B && S.B.state === 'stun';
   MUSIC.filt.frequency.setTargetAtTime(frozen ? 700 : S.cutin > 0 ? 2200 : S.mode === 'paused' ? 1200 : 16000, AC.currentTime, 0.12);
 }
@@ -2951,10 +3029,16 @@ function startGame() {
   newGame('play');
   titleEl.hidden = true; endEl.hidden = true;
   banner('Pyrrhos, the Scorched Sovereign', 'Melt his flames. Break his Aegis.', '#e6c67a');
-  musicStart();
+  musicStart('battle');
   cvs.focus && cvs.focus();
 }
 document.getElementById('start').addEventListener('click', startGame);
+function coverMusic() {
+  if (titleEl.hidden || (MUSIC.on && MUSIC.song === 'title')) return;
+  initAudio(); if (AC) musicStart('title');
+}
+addEventListener('pointerdown', e => { if (!e.target.closest('#start,#start2')) coverMusic(); }, true);
+addEventListener('keydown', coverMusic, true);
 document.getElementById('start2').addEventListener('click', startGame);
 // cover: character art in chips, dossiers and the foe card; smooth-scroll links to the codex
 document.querySelectorAll('img[data-spr]').forEach(im => { if (SPRITE_DATA[im.dataset.spr]) im.src = SPRITE_DATA[im.dataset.spr]; });
@@ -2962,7 +3046,7 @@ document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', 
   const el = document.getElementById(b.dataset.go); if (el) el.scrollIntoView({ block: 'start' });
 }));
 document.getElementById('again').addEventListener('click', startGame);
-document.getElementById('menu').addEventListener('click', () => { musicStop(0.5); endEl.hidden = true; newGame('title'); titleEl.hidden = false; titleEl.scrollTop = 0; });
+document.getElementById('menu').addEventListener('click', () => { musicStart('title'); endEl.hidden = true; newGame('title'); titleEl.hidden = false; titleEl.scrollTop = 0; });
 // difficulty picker on the cover
 const diffNote = document.getElementById('diffNote');
 function setDiff(k) {
@@ -2980,12 +3064,25 @@ function victory() {
 }
 function showEnd(win) {
   const st = S.stats;
-  document.getElementById('endEyebrow').textContent = 'Domain Challenge · ' + D().label + (win ? ' · Cleared' : ' · Failed');
-  document.getElementById('endTitle').textContent = win ? 'Challenge Completed' : 'Challenge Failed';
+  const $ = id => document.getElementById(id);
+  for (const el of [endEl, $('endCard')]) { el.classList.toggle('is-win', win); el.classList.toggle('is-lose', !win); }
+  $('endEyebrow').textContent = 'Domain Challenge · ' + D().label + (win ? ' · Cleared' : ' · Failed');
+  $('endTitle').textContent = win ? 'Pyrrhos Sleeps' : 'The Flames Endure';
+  $('endLine').textContent = win
+    ? 'The Hollow falls quiet and the sea cools. Somewhere below, a fire spirit dreams again, and Ayaka and Kokomi climb back toward the dawn.'
+    : 'The heat drives Ayaka and Kokomi back to the surface. Pyrrhos still burns beneath the sea, but his flames are not unbeatable.';
   let rank = 'B';
-  if (win) { if (S.t < 150 && st.taken < 900) rank = 'S'; else if (S.t < 240) rank = 'A'; }
-  else rank = Math.round((1 - S.B.hp / S.B.maxHp) * 100) + '%';
-  document.getElementById('endRank').textContent = rank;
+  if (S.t < 150 && st.taken < 900) rank = 'S'; else if (S.t < 240) rank = 'A';
+  $('endRank').textContent = rank;
+  const done = Math.max(0, Math.min(100, Math.round((1 - S.B.hp / S.B.maxHp) * 100)));
+  $('endProgFill').style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => { $('endProgFill').style.width = (win ? 100 : done) + '%'; }));
+  $('endProgText').textContent = 'You wore Pyrrhos down by ' + done + '%' + (S.B.phase > 1 ? ', past his Blazing Aegis.' : '.');
+  $('endTip').textContent = win ? '' : st.melts < 3
+    ? 'Tip: soak him with Kokomi (E keeps her koi attacking), switch to Ayaka and frost him to Freeze.'
+    : st.taken > 1500 ? 'Tip: jump over shockwaves, eruptions and fire trails, and dash through fireballs.'
+    : 'Tip: save Kokomi\'s Tidal Lullaby for when both health bars are low.';
+  $('again').textContent = win ? 'Challenge Again' : 'Try Again';
   document.getElementById('stTime').textContent = fmtTime(S.t);
   document.getElementById('stMax').textContent = st.maxHit.toLocaleString();
   document.getElementById('stMelt').textContent = st.melts.toLocaleString();

@@ -45,7 +45,11 @@ Elemental reactions (Frozen, Melt, Vaporize) pierce half of his armour, and a fr
 
 ## Music
 
-An original battle theme is played live with the Web Audio API (no audio files): taiko drums, a koto melody over a D-minor progression, a driving bass line and string pads at 132 BPM. In Phase II the drums double and a shakuhachi-style flute joins; the music goes muffled while Pyrrhos is frozen, dips under burst cut-ins and fades out when the fight ends. Every attack has its own sound effect: Ayaka's blade whoosh and steel clang, crystal cracks for frost hits, a howling blizzard; Kokomi's bubble bloops and pops, the koi's drips, a rolling surf for her tide and a harp-like heal; sizzles for Melt, steam for Vaporize; Pyrrhos's fireball whooshes, rolling rumble, eruptions, shockwave whoomp, whistling meteors, and a burning sizzle when he hits you. M (or the Sound button) mutes music and effects.
+The cover has its own calm theme in the Japanese In scale (koto arpeggios, a shakuhachi-style flute, a soft drone, quiet taiko and wind chimes); it starts on your first tap or key press, since browsers block sound until then. An original battle theme is played live with the Web Audio API (no audio files): taiko drums, a koto melody over a D-minor progression, a driving bass line and string pads at 132 BPM. In Phase II the drums double and a shakuhachi-style flute joins; the music goes muffled while Pyrrhos is frozen, dips under burst cut-ins and fades out when the fight ends. Every attack has its own sound effect: Ayaka's blade whoosh and steel clang, crystal cracks for frost hits, a howling blizzard; Kokomi's bubble bloops and pops, the koi's drips, a rolling surf for her tide and a harp-like heal; sizzles for Melt, steam for Vaporize; Pyrrhos's fireball whooshes, rolling rumble, eruptions, shockwave whoomp, whistling meteors, and a burning sizzle when he hits you. M (or the Sound button) mutes music and effects.
+
+## Results screen
+
+Winning shows Ayaka and Kokomi on a dawn-gold card with your rank; losing shows Pyrrhos wreathed in fire on an ember card, with how far you wore him down and a tip for the next attempt.
 
 ## Arena
 
