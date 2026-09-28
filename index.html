@@ -112,10 +112,10 @@ kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid rgba(19
         <b>Freezes</b> him. Hit his <span class="pyro">Pyro</span> flames for Melt and Vaporize.</p>
       <dl class="keys">
         <dt><kbd>WASD</kbd></dt><dd>Move</dd>
-        <dt><kbd>Click</kbd> / <kbd>J</kbd></dt><dd>Attack · Yukina: sword combo, get in reach · Mizuha: homing water orbs (hold)</dd>
+        <dt><kbd>Click</kbd> / <kbd>J</kbd></dt><dd>Attack · Yukina: sword combo, get in reach · Mizuha: long-range bubbles, light damage (hold)</dd>
         <dt><kbd>1</kbd> / <kbd>2</kbd></dt><dd>Switch to Yukina / Mizuha</dd>
         <dt><kbd>E</kbd></dt><dd>Skill · Yukina: Frostfan Gale, an icy gust that frost-infuses her sword for 6s · Mizuha: Tide Sprite (keeps attacking 6s after you switch)</dd>
-        <dt><kbd>Q</kbd></dt><dd>Burst · Yukina: Winter Waltz, 3s of blizzard and a much stronger sword · Mizuha: Tidal Lullaby (heals the party)</dd>
+        <dt><kbd>Q</kbd></dt><dd>Burst · Yukina: Winter Waltz, 3s of blizzard and a much stronger sword · Mizuha: Tidal Lullaby, a tide wave that hits and heals both; for 3s her attacks keep healing</dd>
         <dt><kbd>Space</kbd></dt><dd>Jump · clears shockwaves, fire and eruptions</dd>
         <dt><kbd>Shift</kbd></dt><dd>Run (hold, uses stamina)</dd>
         <dt><kbd>C</kbd> / <kbd>Right-click</kbd></dt><dd>Dash (invulnerable, uses stamina)</dd>
@@ -235,6 +235,7 @@ function sfx(k) {
     case 'bloom': tone(880, 0.6, 'sine', 0.12, 2); tone(1320, 0.7, 'triangle', 0.06, 2); noise(0.35, 0.12, 3500, 'highpass'); break;
     case 'burst': [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 1.6, 'sine', 0.07, 1, i * 0.06)); noise(1.2, 0.08, 5000, 'highpass'); break;
     case 'hurt': tone(210, 0.22, 'square', 0.08, 0.5); break;
+    case 'bubble': tone(520, 0.1, 'sine', 0.06, 2.2); tone(880, 0.06, 'sine', 0.03, 1.6, 0.05); break;
     case 'water': tone(700, 0.12, 'sine', 0.07, 0.6); noise(0.08, 0.04, 1800, 'bandpass'); break;
     case 'freeze': tone(2200, 0.4, 'triangle', 0.07, 0.5); noise(0.4, 0.2, 3000, 'highpass'); break;
     case 'swap': tone(660, 0.12, 'sine', 0.06, 1.5); tone(990, 0.16, 'sine', 0.04, 1.3, 0.05); break;
@@ -319,7 +320,7 @@ function newGame(mode) {
     stats: { dmg: 0, maxHit: 0, melts: 0, taken: 0 },
     party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 20, skillCd: 0, burstCd: 0, infuseT: 0 })),
     slashes: [], gusts: [],
-    active: 0, sprite: null, healT: 0, healTick: 0, cutinChar: 0
+    active: 0, sprite: null, healT: 0, tide: null, cutinChar: 0
   };
   // P.hp, P.energy, P.skillCd … always refer to whoever is on the field
   for (const k of PARTY_KEYS) Object.defineProperty(S.P, k, { get: () => S.party[S.active][k], set: v => { S.party[S.active][k] = v; } });
@@ -553,10 +554,20 @@ function updPlayer(dt) {
       P.atkCd = step < 3 ? 0.3 : 0.55; P.swingT = 0.45;
       sfx('slash');
     } else {
-      if (step < 3) { fireShard(sx, sy, ang + (step - 1) * 0.5, 66 + step * 8, null, 'hydro'); P.atkCd = 0.28; }
-      else { for (let i = -1; i <= 1; i++) fireShard(sx, sy, ang + i * 0.5, 62, null, 'hydro'); P.atkCd = 0.55; }
-      spray(sx, sy, 6, { color: HYDRO_C, ang, spread: 0.7, smin: 60, smax: 200, lmax: 0.35 });
-      sfx('water');
+      // bubble stream: reaches the boss from anywhere, but each bubble is light
+      const n = step < 3 ? 2 : 4;
+      for (let i = 0; i < n; i++) fireShard(sx + rand(-6, 6), sy + rand(-6, 6), ang + rand(-0.9, 0.9), step < 3 ? 15 : 13, null, 'hydro');
+      P.atkCd = step < 3 ? 0.3 : 0.55;
+      // Tidal Blessing: for 3s after her burst, every attack heals both girls a little
+      if (S.healT > 0) {
+        for (const c of S.party) if (c.hp > 0) {
+          const h = Math.round(c.maxHp * 0.025 + 10);
+          c.hp = Math.min(c.maxHp, c.hp + h);
+          if (c === ch) popText(P.x, P.y - 130 - P.z, '+' + h, '#9ff59a', 15);
+        }
+        spray(P.x, P.y - 60 - P.z, 6, { color: ['#9ff5c8', '#bff4ff'], up: 60, smin: 20, smax: 80, lmax: 0.6 });
+      }
+      sfx('bubble');
     }
   }
   // elemental skill
@@ -571,7 +582,7 @@ function updPlayer(dt) {
     } else {
       // Tide Sprite: a water spirit that circles the boss and keeps firing for 6s, even after you switch out
       S.sprite = { t: 6, cd: 0.25, x: P.x, y: P.y - 60 };
-      dealBoss(240, S.B.x, S.B.y - 90, null, 'hydro');
+      dealBoss(150, S.B.x, S.B.y - 90, null, 'hydro');
       spray(S.B.x, S.B.y - 70, 30, { color: HYDRO_C, smin: 100, smax: 360, up: 80, g: 300, lmin: 0.4, lmax: 0.9, zmax: 6 });
       for (let i = 0; i < 3; i++) S.orbs.push({ x: S.B.x + rand(-40, 40), y: S.B.y - 60 + rand(-30, 30), vx: rand(-160, 160), vy: rand(-200, -60), t: 0, el: 'hydro' });
       spray(P.x + P.face * 16, P.y - 44, 14, { color: HYDRO_C, smin: 40, smax: 160, lmax: 0.6 });
@@ -583,16 +594,12 @@ function updPlayer(dt) {
     P.energy = 0; P.burstCd = ch.burstMax; S.cutin = 1.25; S.cutinChar = S.active; P.castT = 0.5;
     sfx('burst');
   }
-  // Tidal Lullaby: healing rain on whoever is on the field
+  // Tidal Lullaby: the tide rolls outward once; the 3s Tidal Blessing window just counts down
   if (S.healT > 0) {
-    S.healT -= dt; S.healTick -= dt;
-    if (S.healTick <= 0 && P.hp > 0) {
-      S.healTick = 0.5;
-      const h = Math.round(P.maxHp * 0.025);
-      if (P.hp < P.maxHp) { P.hp = Math.min(P.maxHp, P.hp + h); popText(P.x, P.y - 84 - P.z, '+' + h, '#9ff59a', 15); }
-    }
-    if (Math.random() < 0.8) { const a = rand(0, TAU), r = rand(0, 150); spray(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * GY - 120, 1, { color: ['#bff4ff', '#9ff5c8', '#5fb6ff'], ang: Math.PI / 2, spread: 0.05, smin: 300, smax: 380, lmin: 0.3, lmax: 0.4, drag: 0 }); }
+    S.healT = Math.max(0, S.healT - dt);
+    if (S.party[S.active].id === 'mizuha' && Math.random() < 0.3) spray(P.x + rand(-30, 30), P.y - rand(20, 110) - P.z, 1, { color: ['#9ff5c8', '#bff4ff'], ang: -Math.PI / 2, spread: 0.4, smin: 20, smax: 60, lmin: 0.5, lmax: 0.9 });
   }
+  updTide(dt);
   updSprite(dt);
   if (P.burstT > 0) {
     P.burstT -= dt; P.burstTick -= dt;
@@ -618,7 +625,8 @@ function startBurst() {
 }
 function startHeal() {
   const P = S.P;
-  S.healT = 5; S.healTick = 0.5; S.shake = 8;
+  S.healT = 3; S.shake = 10;
+  S.tide = { x: P.x, y: P.y, r: 20, t: 0, hit: false };
   for (const c of S.party) {
     if (c.hp <= 0) continue;
     const h = Math.round(c.maxHp * 0.3 + 150);
@@ -626,6 +634,19 @@ function startHeal() {
     if (c === S.party[S.active]) popText(P.x, P.y - 90 - P.z, '+' + h, '#9ff59a', 26);
   }
   spray(P.x, P.y - 30, 70, { color: ['#ffffff', '#bff4ff', '#9ff5c8', '#5fb6ff'], smin: 120, smax: 420, up: 120, lmin: 0.5, lmax: 1.2, zmax: 6, drag: 2 });
+}
+function updTide(dt) {
+  const td = S.tide, B = S.B;
+  if (!td) return;
+  td.t += dt; td.r += Math.max(260, 1100 - td.t * 700) * dt;
+  if (!td.hit && !B.dead && gdist(td.x, td.y, B.x, B.y) < td.r) {
+    td.hit = true;
+    dealBoss(380, B.x, B.y - 90, null, 'hydro');
+    spray(B.x, B.y - 60, 30, { color: HYDRO_C, smin: 120, smax: 380, up: 120, g: 400, lmin: 0.4, lmax: 0.9, zmax: 6 });
+  }
+  // the wave washes away fireballs it passes
+  for (const f of S.foes) if (Math.abs(Math.hypot(f.x - td.x, (f.y + 40 - td.y) / GY) - td.r) < 40) { f.life = 0; spray(f.x, f.y, 5, { color: HYDRO_C, lmax: 0.4 }); }
+  if (td.r > 1350) S.tide = null;
 }
 function updSprite(dt) {
   const sp = S.sprite, B = S.B;
@@ -635,7 +656,7 @@ function updSprite(dt) {
   sp.x = lerp(sp.x, tx, Math.min(1, dt * 6)); sp.y = lerp(sp.y, ty, Math.min(1, dt * 6));
   if (sp.cd <= 0 && !B.dead) {
     sp.cd = 0.5;
-    fireShard(sp.x, sp.y, Math.atan2(B.y - 70 - sp.y, B.x - sp.x), 92, 'tick', 'hydro');
+    fireShard(sp.x, sp.y, Math.atan2(B.y - 70 - sp.y, B.x - sp.x), 20, 'tick', 'hydro');
     spray(sp.x, sp.y, 6, { color: HYDRO_C, smin: 40, smax: 140, lmax: 0.35 });
   }
   if (Math.random() < 0.5) spray(sp.x + rand(-8, 8), sp.y + 10, 1, { color: HYDRO_C, ang: Math.PI / 2, spread: 0.3, smin: 20, smax: 60, lmax: 0.5, zmax: 3 });
@@ -654,13 +675,13 @@ function updShots(dt) {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       s.ang += diff * Math.min(1, dt * (8 + s.age * 80));
     } else s.life = Math.min(s.life, 0.3);
-    const sp = 900 + s.age * 1800;
+    const sp = s.el === 'hydro' && !s.kind ? 360 + s.age * 1300 : 900 + s.age * 1800; // bubbles drift, shards fly
     s.x += Math.cos(s.ang) * sp * dt; s.y += Math.sin(s.ang) * sp * dt;
-    if (Math.random() < 0.6) S.parts.push({ x: s.x, y: s.y, vx: 0, vy: 0, life: 0.25, max: 0.25, size: 3, color: s.el === 'hydro' ? '#7cc4ff' : '#bfe9ff', g: 0, drag: 0, shape: 'dot', rot: 0, vr: 0, add: true });
+    if (Math.random() < (s.el === 'hydro' ? 0.25 : 0.6)) S.parts.push({ x: s.x, y: s.y, vx: 0, vy: s.el === 'hydro' ? -20 : 0, life: 0.25, max: 0.25, size: s.el === 'hydro' ? 2 : 3, color: s.el === 'hydro' ? '#cfeaff' : '#bfe9ff', g: 0, drag: 0, shape: 'dot', rot: 0, vr: 0, add: true });
     if (!B.dead && Math.hypot(s.x - bx, s.y - by) < B.r + 10) {
       s.life = 0;
-      if (dealBoss(s.dmg, s.x, s.y, s.kind, s.el) && s.kind !== 'tick') S.P.energy = Math.min(S.P.maxEnergy, S.P.energy + 0.7);
-      spray(s.x, s.y, 7, s.el === 'hydro' ? { color: HYDRO_C, smin: 60, smax: 240, lmax: 0.4, g: 400 } : { color: CRYO_C, smin: 60, smax: 240, shape: 'shard', lmax: 0.4 });
+      if (dealBoss(s.dmg, s.x, s.y, s.kind, s.el) && s.kind !== 'tick') S.P.energy = Math.min(S.P.maxEnergy, S.P.energy + (s.el === 'hydro' ? 0.45 : 0.7));
+      spray(s.x, s.y, 7, s.el === 'hydro' ? { color: ['#ffffff', '#cfeaff', '#a9c8ff'], smin: 80, smax: 160, lmin: 0.15, lmax: 0.3, zmax: 2.5, drag: 4 } : { color: CRYO_C, smin: 60, smax: 240, shape: 'shard', lmax: 0.4 });
     }
   }
   S.shots = S.shots.filter(s => s.life > 0);
@@ -1918,14 +1939,28 @@ function drawSprite(g) {
   g.beginPath(); g.arc(sp.x, sp.y, 26, -Math.PI / 2, -Math.PI / 2 + TAU * sp.t / 6); g.stroke(); g.restore();
 }
 function drawHealField(g) {
-  if (S.healT <= 0) return;
-  const P = S.P, a = Math.min(1, S.healT / 0.6);
-  g.save(); g.globalAlpha = a;
-  const fg = g.createRadialGradient(P.x, P.y, 10, P.x, P.y, 170);
-  fg.addColorStop(0, 'rgba(160,255,210,0.3)'); fg.addColorStop(1, 'rgba(95,182,255,0)');
-  g.fillStyle = fg; ell(g, P.x, P.y, 170, 170 * GY); g.fill();
-  g.strokeStyle = 'rgba(160,255,210,0.6)'; g.lineWidth = 2; g.setLineDash([10, 10]); g.lineDashOffset = S.anim * 40;
-  ell(g, P.x, P.y, 160, 160 * GY); g.stroke(); g.setLineDash([]);
+  // Tidal Lullaby: a ring of water rolling out from Mizuha to the edge of the cave
+  const td = S.tide;
+  if (!td) return;
+  const t = S.anim, fade = Math.max(0, 1 - td.r / 1350);
+  g.save();
+  for (let k = 0; k < 3; k++) {          // three swells, the lead one brightest
+    const r = td.r - k * 55; if (r <= 10) continue;
+    const a = fade * (1 - k * 0.3);
+    g.strokeStyle = `rgba(40,130,220,${0.35 * a})`; g.lineWidth = 46 - k * 10;
+    ell(g, td.x, td.y, r - 18, (r - 18) * GY); g.stroke();
+    g.strokeStyle = `rgba(110,200,255,${0.5 * a})`; g.lineWidth = 18 - k * 4;
+    ell(g, td.x, td.y, r - 6, (r - 6) * GY); g.stroke();
+  }
+  // white foam cresting on the leading edge
+  g.strokeStyle = `rgba(240,252,255,${0.9 * fade})`; g.lineWidth = 3.5;
+  g.setLineDash([26, 10, 8, 12]); g.lineDashOffset = -t * 120;
+  ell(g, td.x, td.y, td.r, td.r * GY); g.stroke(); g.setLineDash([]);
+  g.fillStyle = `rgba(255,255,255,${0.8 * fade})`;
+  for (let i = 0; i < 40; i++) {
+    const a = i / 40 * TAU + Math.sin(t * 3 + i) * 0.04, rr = td.r + Math.sin(i * 7.3 + t * 9) * 6;
+    g.beginPath(); g.arc(td.x + Math.cos(a) * rr, td.y + Math.sin(a) * rr * GY - 4, 2.2 + (i % 3), 0, TAU); g.fill();
+  }
   g.restore();
 }
 function drawParts(g) {
@@ -1960,10 +1995,17 @@ function drawProjectiles(g) {
   if (sprReady('fx_fireball')) for (const f of S.foes) drawFireball(g, f.x, f.y, Math.atan2(f.vy, f.vx), f.r * 2.2);
   for (const s of S.shots) {
     if (s.el === 'hydro') {
-      g.save(); g.shadowColor = '#5fb6ff'; g.shadowBlur = 10;
-      const wg = g.createRadialGradient(s.x - 2, s.y - 2, 1, s.x, s.y, 8);
-      wg.addColorStop(0, '#ffffff'); wg.addColorStop(0.45, '#8fd0ff'); wg.addColorStop(1, 'rgba(40,120,230,0.85)');
-      g.fillStyle = wg; g.beginPath(); g.arc(s.x, s.y, 7, 0, TAU); g.fill();
+      // a soap-bubble: clear body, blue-violet rim, bright highlight; it wobbles as it drifts
+      const r = s.kind ? 9 : 11 + (s.dmg % 3), w = Math.sin(s.age * 14 + s.dmg) * 0.12;
+      const x = s.x + Math.sin(s.age * 9 + s.y) * 3, y = s.y + Math.cos(s.age * 8 + s.x) * 3;
+      g.save(); g.translate(x, y); g.scale(1 + w, 1 - w);
+      const bg = g.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+      bg.addColorStop(0, 'rgba(255,255,255,0.35)'); bg.addColorStop(0.7, 'rgba(140,210,255,0.14)'); bg.addColorStop(1, 'rgba(170,150,255,0.45)');
+      g.fillStyle = bg; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
+      g.strokeStyle = 'rgba(200,235,255,0.9)'; g.lineWidth = 1.2; g.stroke();
+      g.fillStyle = 'rgba(255,255,255,0.95)';
+      g.beginPath(); g.ellipse(-r * 0.38, -r * 0.4, r * 0.28, r * 0.16, -0.7, 0, TAU); g.fill();
+      g.beginPath(); g.arc(r * 0.35, r * 0.4, r * 0.1, 0, TAU); g.fill();
       g.restore();
       continue;
     }
@@ -2071,7 +2113,7 @@ function drawHUD(g) {
   g.fillText(`${Math.ceil(P.hp)} / ${P.maxHp}`, 104, H - 28);
   if (P.burstT > 0) { g.fillStyle = '#bfe9ff'; g.fillText('Winter Waltz · sword ×2.2 · DMG taken −40%', 190, H - 28); }
   else if (S.party[0].infuseT > 0 && S.active === 0) { g.fillStyle = '#9fe3ff'; g.fillText('Frost-infused sword · ' + S.party[0].infuseT.toFixed(1) + 's', 190, H - 28); }
-  else if (S.healT > 0) { g.fillStyle = '#9ff5c8'; g.fillText('Tidal Lullaby · healing', 190, H - 28); }
+  else if (S.healT > 0) { g.fillStyle = '#9ff5c8'; g.fillText('Tidal Blessing · attacks heal both · ' + S.healT.toFixed(1) + 's', 190, H - 28); }
   drawParty(g);
 
   // skills (desktop)
