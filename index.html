@@ -483,6 +483,14 @@ function noise(dur, vol, freq, type = 'lowpass') {
   g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   s.connect(f).connect(g).connect(master); s.start(t0); s.stop(t0 + dur + 0.05);
 }
+// filtered noise with an optional sweep (f0 -> f1), resonance, delay and swell-in
+function nz(dur, vol, f0, f1, type, q, delay, attack) {
+  const t0 = AC.currentTime + (delay || 0), s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = noiseBuf; s.loop = true; f.type = type || 'bandpass'; f.Q.value = q || 1;
+  f.frequency.setValueAtTime(f0, t0); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + (attack || 0.005)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  s.connect(f).connect(g).connect(master); s.start(t0, Math.random() * 0.5); s.stop(t0 + dur + 0.05);
+}
 /* ---------------- music: an original battle theme, played live ----------------
    Taiko, koto, bass, string pads and (in Phase II) a shakuhachi-style flute over a dark D-minor loop at 132 BPM.
    It is scheduled a quarter-second ahead of the audio clock, swells in Phase II, goes muffled while Pyrrhos is
@@ -599,7 +607,7 @@ function sfx(k) {
   switch (k) {
     case 'shard': tone(1500, 0.09, 'triangle', 0.06, 0.55); break;
     case 'hit': tone(820, 0.06, 'square', 0.025, 0.7); noise(0.06, 0.05, 4000, 'highpass'); break;
-    case 'melt': tone(520, 0.22, 'sawtooth', 0.05, 1.8); break;
+    case 'melt': tone(520, 0.22, 'sawtooth', 0.04, 1.8); nz(0.45, 0.14, 6500, 6500, 'highpass'); break; // sizzle
     case 'fire': noise(0.28, 0.12, 900); break;
     case 'boom': noise(0.55, 0.3, 380); tone(90, 0.4, 'sine', 0.2, 0.5); break;
     case 'cast': tone(990, 0.25, 'sine', 0.08, 1.5); break;
@@ -613,6 +621,33 @@ function sfx(k) {
     case 'slash': noise(0.12, 0.12, 3200, 'bandpass'); tone(1200, 0.08, 'triangle', 0.03, 0.5); break;
     case 'splash': noise(0.18, 0.08, 1400, 'bandpass'); tone(420, 0.12, 'sine', 0.05, 1.8); break;
     case 'shatter': noise(0.4, 0.22, 3500, 'highpass'); tone(2400, 0.25, 'triangle', 0.05, 0.4); tone(1600, 0.3, 'triangle', 0.04, 0.5, 0.04); break;
+    // --- heroines' attacks ---
+    case 'slash': nz(0.16, 0.16, 5200, 1100, 'bandpass', 1.4); tone(2600, 0.05, 'triangle', 0.015, 0.6); break;       // blade whoosh
+    case 'swordHit': tone(1850, 0.2, 'square', 0.025, 0.98); tone(2770, 0.16, 'triangle', 0.03, 0.97); nz(0.05, 0.12, 3200, 3200, 'highpass'); break; // steel on rock
+    case 'iceHit': tone(2400, 0.28, 'sine', 0.05, 1); tone(3600, 0.2, 'sine', 0.03, 1); nz(0.09, 0.14, 7000, 2500, 'highpass'); break; // crystal crack
+    case 'iceTick': tone(rand(2100, 3400), 0.14, 'sine', 0.025, 1); break;                                            // blizzard tinkle
+    case 'blocked': tone(170, 0.12, 'square', 0.05, 0.7); tone(1150, 0.09, 'triangle', 0.02, 0.8); nz(0.06, 0.08, 700, 700, 'lowpass'); break;
+    case 'bubble': tone(300, 0.12, 'sine', 0.07, 2.6); tone(620, 0.07, 'sine', 0.03, 1.8, 0.05); break;                // bloop
+    case 'pop': tone(900, 0.05, 'sine', 0.05, 2.4); nz(0.03, 0.05, 4200, 4200, 'bandpass', 2); break;
+    case 'drip': tone(1300, 0.09, 'sine', 0.045, 0.45); break;
+    case 'gust': nz(0.75, 0.2, 500, 3200, 'bandpass', 2.2, 0, 0.12); tone(1600, 0.6, 'sine', 0.018, 1.5, 0.05); break; // wind from the fan
+    case 'blizzard': nz(3.1, 0.18, 600, 2400, 'bandpass', 3, 0, 0.35); nz(3.1, 0.12, 350, 220, 'lowpass', 1, 0, 0.3);
+      [0.2, 0.9, 1.6, 2.3].forEach(d => nz(0.8, 0.07, 1800, 4200, 'bandpass', 6, d, 0.2)); break;                     // howling storm
+    case 'sprite': [400, 560, 780, 1100].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, 1.8, i * 0.05)); nz(0.3, 0.08, 1500, 700, 'bandpass', 1.5); break; // koi summoned
+    case 'wave': nz(1.5, 0.26, 300, 2600, 'lowpass', 0.8, 0, 0.25); nz(1.1, 0.12, 2400, 600, 'bandpass', 1.2, 0.35, 0.1); tone(70, 0.9, 'sine', 0.12, 0.8); break; // surf rolling out
+    case 'heal': [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 0.5, 'sine', 0.035, 1, 0.08 + i * 0.07)); break;
+    case 'healTick': tone(988, 0.25, 'sine', 0.025, 1); tone(1318, 0.25, 'sine', 0.018, 1, 0.05); break;
+    case 'vaporize': nz(0.7, 0.2, 4200, 1400, 'bandpass', 1.2); [700, 1000, 1400].forEach((f, i) => tone(f, 0.06, 'sine', 0.03, 1.6, i * 0.06)); break; // steam
+    // --- Pyrrhos ---
+    case 'fireball': nz(0.35, 0.16, 300, 1600, 'bandpass', 1.5, 0, 0.03); nz(0.22, 0.06, 5000, 5000, 'highpass', 1, 0.05); break; // whoosh + crackle
+    case 'flicker': nz(0.09, 0.06, 2200, 800, 'bandpass', 2); break;
+    case 'rumble': nz(0.85, 0.32, 220, 120, 'lowpass', 1, 0, 0.05); tone(55, 0.85, 'sawtooth', 0.07, 0.8); break;      // rock ball rolling
+    case 'nova': tone(140, 0.75, 'sine', 0.25, 0.3); nz(0.8, 0.22, 1400, 200, 'lowpass'); break;                       // shockwave whoomp
+    case 'erupt': nz(0.6, 0.3, 420, 160, 'lowpass'); tone(80, 0.45, 'sine', 0.18, 0.5); nz(0.4, 0.08, 5000, 2500, 'highpass', 1, 0.05); break;
+    case 'meteorFall': [0, 0.25, 0.5].forEach(d => tone(1800, 1.1, 'sine', 0.02, 0.35, d)); break;                      // whistling descent
+    case 'meteor': nz(0.8, 0.34, 360, 110, 'lowpass'); tone(60, 0.6, 'sine', 0.22, 0.5); nz(0.5, 0.1, 3000, 1200, 'bandpass', 1, 0.08); break; // impact + debris
+    case 'burn': nz(0.4, 0.16, 5200, 5200, 'highpass'); tone(190, 0.18, 'square', 0.06, 0.5); break;                   // hit by fire: thud + sizzle
+    case 'burnTick': nz(0.22, 0.08, 6000, 6000, 'highpass'); break;
     case 'jump': tone(520, 0.14, 'sine', 0.06, 1.8); break;
     case 'dash': noise(0.16, 0.1, 2600, 'highpass'); break;
     case 'break': noise(0.7, 0.35, 2200, 'highpass'); tone(1760, 0.6, 'triangle', 0.08, 0.4); tone(260, 0.7, 'sawtooth', 0.08, 0.4); break;
@@ -743,6 +778,8 @@ function popText(x, y, txt, color, size, label) {
 function banner(text, sub, color) { S.banner = { text, sub, color: color || '#e6c67a', t: 0, life: 2.8 }; }
 
 /* ---------------- damage ---------------- */
+// sword clang, crystal crack or blizzard tinkle, bubble pop or koi drip
+const hitSound = (el, kind) => !el ? 'swordHit' : el === 'cryo' ? (kind === 'tick' ? 'iceTick' : 'iceHit') : (kind === 'tick' ? 'drip' : 'pop');
 function dealBoss(base, x, y, kind, el) {
   const B = S.B;
   if (B.dead || S.mode !== 'play') return false;
@@ -756,10 +793,11 @@ function dealBoss(base, x, y, kind, el) {
     if (!el) {
       if (!(S.blockT > S.anim)) { popText(x, y, 'Blocked', '#c9d3e6', 16); S.blockT = S.anim + 0.4; }
       spray(x, y, 4, { color: ['#ffd9a0', '#ffffff'], smin: 60, smax: 160, lmax: 0.25, zmax: 2.5 });
-      sfx('hit');
+      sfx('blocked');
       return true;
     }
     B.shield -= 1;
+    sfx(hitSound(el, kind));
     popText(x, y, '−1', dmgColor(el, crit), 15, 'Aegis');
     spray(x, y, 6, { color: PYRO_C.concat(CRYO_C), smin: 80, smax: 220, shape: 'shard', lmax: 0.5 });
     if (B.shield <= 0) { B.shield = 0; shieldBreak(); }
@@ -773,7 +811,7 @@ function dealBoss(base, x, y, kind, el) {
       if (el === 'cryo') { dmg *= 1.5; label = 'Melt'; color = '#ffb454'; }
       else { dmg *= 2; label = 'Vaporize'; color = '#ffd27a'; }
       B.elT -= 2.2; if (B.elT <= 0) { B.el = null; B.elT = 0; }
-      S.stats.melts++; sfx('melt');
+      S.stats.melts++; sfx(el === 'cryo' ? 'melt' : 'vaporize');
       spray(x, y, 10, { color: ['#ffd27a', '#ff9a4a', '#ffffff'], smin: 60, smax: 240, up: 60, lmax: 0.6 });
     } else if (cur && cur !== el) {
       // Cryo + Hydro
@@ -790,7 +828,7 @@ function dealBoss(base, x, y, kind, el) {
   B.hp -= dmg; S.stats.dmg += dmg; S.stats.maxHit = Math.max(S.stats.maxHit, dmg);
   popText(x, y, dmg, color, crit ? 30 : 21, label);
   if (crit && kind !== 'tick') S.hitStop = Math.max(S.hitStop, 0.035);
-  sfx('hit');
+  sfx(hitSound(el, kind));
   if (B.hp <= 0) { B.hp = 0; killBoss(); return true; }
   if (B.phase === 1 && B.hp < B.maxHp * 0.55) enterPhase2();
   else if (B.phase === 2 && !B.reshield && B.hp < B.maxHp * 0.25 && B.state !== 'stun') {
@@ -847,7 +885,7 @@ function hurtPlayer(d, sx, sy, ground) {
   if (sx !== undefined) { const a = Math.atan2(P.y - sy, P.x - sx); P.x += Math.cos(a) * 26; P.y += Math.sin(a) * 18; clampArena(P, 0.96); }
   popText(P.x, P.y - 70 - P.z, d, dmgColor('pyro'), 22); // everything Pyrrhos throws is fire
   spray(P.x, P.y - 30, 12, { color: PYRO_C, smin: 60, smax: 220, lmax: 0.5 });
-  sfx('hurt');
+  sfx(sx === undefined ? 'burnTick' : 'burn');
   if (P.hp <= 0) {
     P.hp = 0;
     const other = S.party.findIndex((c, i) => i !== S.active && c.hp > 0);
@@ -988,6 +1026,7 @@ function updPlayer(dt) {
           c.hp = Math.min(c.maxHp, c.hp + h);
           if (c === ch) popText(P.x, P.y - 130 - P.z, '+' + h, '#9ff59a', 15);
         }
+        sfx('healTick');
         spray(P.x, P.y - 60 - P.z, 6, { color: ['#9ff5c8', '#bff4ff'], up: 60, smin: 20, smax: 80, lmax: 0.6 });
       }
       sfx('bubble');
@@ -1010,7 +1049,7 @@ function updPlayer(dt) {
       for (let i = 0; i < 3; i++) S.orbs.push({ x: S.B.x + rand(-40, 40), y: S.B.y - 60 + rand(-30, 30), vx: rand(-160, 160), vy: rand(-200, -60), t: 0, el: 'hydro' });
       spray(P.x + P.face * 16, P.y - 44, 14, { color: HYDRO_C, smin: 40, smax: 160, lmax: 0.6 });
     }
-    sfx('cast');
+    sfx(ch.el === 'cryo' ? 'gust' : 'sprite');
   }
   // elemental burst
   if (pressed.q && P.energy >= P.maxEnergy && P.burstCd <= 0) {
@@ -1042,14 +1081,14 @@ function updPlayer(dt) {
 const BURST_R = 340; // Winter Waltz gale radius
 function startBurst() {
   const P = S.P;
-  P.burstT = 3; P.burstTick = 0.2;
+  P.burstT = 3; P.burstTick = 0.2; sfx('blizzard');
   S.shake = 14;
   spray(P.x, P.y - 30, 80, { color: CRYO_C, smin: 200, smax: 620, shape: 'shard', lmin: 0.5, lmax: 1.1, zmax: 8, drag: 2.5 });
   if (gdist(P.x, P.y, S.B.x, S.B.y) < BURST_R + 60) dealBoss(520, S.B.x, S.B.y - 80, null, 'cryo');
 }
 function startHeal() {
   const P = S.P;
-  S.healT = 3; S.shake = 10;
+  S.healT = 3; S.shake = 10; sfx('wave'); sfx('heal');
   S.tide = { x: P.x, y: P.y, r: 20, t: 0, hit: false };
   for (const c of S.party) {
     if (c.hp <= 0) continue;
@@ -1137,7 +1176,6 @@ function updSlashes(dt) {
         spray(hx, hy, sl.strong ? 16 : 9, sl.frost || sl.strong
           ? { color: CRYO_C, smin: 80, smax: 300, shape: 'shard', lmax: 0.45 }
           : { color: ['#ffffff', '#e8eef5', '#c9d3e0'], smin: 80, smax: 260, lmax: 0.3, zmax: 3 });
-        sfx('hit');
       } else if (P.farT <= 0 && ch.id === 'yukina') {
         popText(P.x, P.y - 130 - P.z, 'Too far', '#c9d3e6', 15); P.farT = 1.2;
       }
@@ -1277,7 +1315,7 @@ function updBoss(dt) {
         const a = Math.atan2(P.y - 32 - bodyY, P.x - B.x);
         for (let i = 0; i < n; i++) fireball(B.x, bodyY, a + (i - (n - 1) / 2) * 0.15, 340);
         spray(B.x, bodyY, 14, { color: PYRO_C, ang: a, spread: 0.7, smin: 100, smax: 300, lmax: 0.4 });
-        B.sub++; B.t = 0; B.kick = 0.16; sfx('fire');
+        B.sub++; B.t = 0; B.kick = 0.16; sfx('fireball');
       } else if (B.sub >= reps && B.t > 0.6) toState('idle');
       break;
     }
@@ -1285,7 +1323,7 @@ function updBoss(dt) {
       if (B.sub === 0) { // telegraph, tracking early
         B.glow = Math.min(1, B.t);
         if (B.t < 0.6) { const dx = P.x - B.x, dy = P.y - B.y, d = Math.hypot(dx, dy) || 1; B.cdx = dx / d; B.cdy = dy / d; }
-        if (B.t > 1.05) { B.sub = 1; B.t = 0; sfx('fire'); }
+        if (B.t > 1.05) { B.sub = 1; B.t = 0; sfx('rumble'); }
       } else if (B.sub === 1) {
         const sp = (B.phase > 1 ? 1250 : 1100) * D().speed;
         B.x += B.cdx * sp * dt; B.y += B.cdy * sp * dt; B.rollA += (B.cdx >= 0 ? 1 : -1) * sp * dt / 90;
@@ -1318,7 +1356,7 @@ function updBoss(dt) {
       }
       if (B.sub < count && B.t > 0.95 + B.sub * 0.75) {
         S.rings.push({ x: B.x, y: B.y, r: 40, sp: 430, w: 24, hit: false, dmg: 120 });
-        B.sub++; S.shake = 8; sfx('boom');
+        B.sub++; S.shake = 8; sfx('nova');
       }
       if (B.sub >= count && B.t > 0.95 + count * 0.75 + 0.5) toState('idle');
       break;
@@ -1326,7 +1364,7 @@ function updBoss(dt) {
     case 'meteor': {
       B.glow = Math.min(1, B.t * 1.5);
       if (B.sub === 0 && B.t > 0.6) {
-        B.sub = 1; sfx('roar');
+        B.sub = 1; sfx('roar'); sfx('meteorFall');
         for (let i = 0; i < 13 + D().extra * 3; i++) {
           let x, y;
           if (i < 3) { x = P.x + rand(-40, 40); y = P.y + rand(-25, 25); }
@@ -1344,7 +1382,7 @@ function updBoss(dt) {
         if (B.sub <= 0) {
           B.sub = 0.1; B.spin += 0.23;
           for (let k = 0; k < 4; k++) fireball(B.x, bodyY, B.spin + k * TAU / 4, 250, 10, 70);
-          sfx('fire');
+          sfx('flicker');
         }
       }
       if (B.t > 4.0) toState('idle');
@@ -1373,7 +1411,7 @@ function updFoes(dt) {
       if (h.tick <= 0 && gdist(P.x, P.y, h.x, h.y) < h.r) { h.tick = 0.5; hurtPlayer(28, undefined, undefined, true); }
       if (Math.random() < 0.08) spray(h.x + rand(-20, 20), h.y, 1, { color: PYRO_C, ang: -Math.PI / 2, spread: 0.3, smin: 20, smax: 70, lmax: 0.6 });
     } else if (!h.done && h.t >= h.delay) {
-      h.done = true; S.shake = Math.max(S.shake, h.kind === 'meteor' ? 9 : 6); sfx('boom');
+      h.done = true; S.shake = Math.max(S.shake, h.kind === 'meteor' ? 9 : 6); sfx(h.kind === 'meteor' ? 'meteor' : 'erupt');
       spray(h.x, h.y - 20, 30, { color: PYRO_C, ang: -Math.PI / 2, spread: 1.2, smin: 100, smax: 420, g: 500, lmin: 0.4, lmax: 0.9, zmax: 7 });
       if (gdist(P.x, P.y, h.x, h.y) < h.r) hurtPlayer(h.dmg, h.x, h.y, true);
       if (h.kind === 'meteor') S.hazards.push({ kind: 'fire', x: h.x, y: h.y, r: 44, t: 0, life: 2.2, tick: 0 });
