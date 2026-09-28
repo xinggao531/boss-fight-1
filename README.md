@@ -2,7 +2,7 @@
 
 **[Play it in your browser →](https://xinggao531.github.io/lullaby-for-a-fire-spirit/)**
 
-![Cover of Lullaby for a Fire Spirit: Ayaka and Kokomi facing the fire spirit Pyrrhos in a lava cave](docs/cover.jpg)
+<p align="center"><img src="docs/poster.jpg" width="480" alt="Poster for Lullaby for a Fire Spirit: Ayaka and Kokomi in their burst poses before the fire spirit Pyrrhos in his lava cave"></p>
 
 A Genshin Impact–inspired boss fight in one HTML file. You lead a party of two against **Pyrrhos, the Scorched Sovereign**, a Pyro boss:
 
