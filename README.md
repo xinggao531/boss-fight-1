@@ -2,22 +2,28 @@
 
 A Genshin Impact–inspired boss fight in one HTML file. You lead a party of two against **Pyrrhos, the Scorched Sovereign**, a Pyro boss:
 
-- **Yukina, the Frostbloom Maiden** (Cryo): a melee sword fighter. Her slashes are physical and only land within reach of the boss (she steps in a little when close). Frostfan Gale (E, 12s cooldown) sends an icy gust from her fan into the boss and frost-infuses her sword for 6s, so slashes apply Cryo. Eternal Winter Waltz (Q, 16s cooldown, needs 60 energy) is 3s of blizzard around her that hits hard, blows away fireballs, and makes her sword 2.2x stronger with longer reach.
-- **Mizuha** (Hydro): a long-range support. Her attack is a stream of bubbles that drift to the boss from anywhere but hit lightly (well under half of Yukina's damage). Tide Sprite (E, 12s cooldown) is a water koi that keeps attacking for 6s even after you switch out, also at low damage. Tidal Lullaby (Q) sends a tide rolling out from her to the cave walls: it hits the boss once, heals both characters 20% + 80 HP, and for the next 3s each of her attacks heals both a little more.
+- **Ayaka, Blade of the Frostfan** (Cryo): a melee sword fighter. Her slashes are physical and only land within reach of the boss (she steps in a little when close). Frostfan Gale (E, 12s cooldown) sends an icy gust from her fan into the boss and frost-infuses her sword for 6s, so slashes apply Cryo. Eternal Winter Waltz (Q, 16s cooldown, needs 60 energy) is 3s of blizzard around her that hits hard, blows away fireballs, and makes her sword 2.2x stronger with longer reach.
+- **Kokomi** (Hydro): a long-range support. Her attack is a stream of bubbles that drift to the boss from anywhere but hit lightly (well under half of Ayaka's damage). Tide Sprite (E, 12s cooldown) is a water koi that keeps attacking for 6s even after you switch out, also at low damage. Tidal Lullaby (Q) sends a tide rolling out from her to the cave walls: it hits the boss once, heals both characters 20% + 80 HP, and for the next 3s each of her attacks heals both a little more.
 
 Character and boss art (in-battle sprites, Elemental Burst poses, the boss's normal / attack / burst / defence / downed states, and fireball, eruption, rock-burst and lava-pool effects) is embedded in `index.html` as WebP data. Open `index.html` in a browser to play. There is no build step.
+
+## Story
+
+Far beneath the islands lies Magma Hollow, where the fire spirit Pyrrhos agreed five centuries ago to sleep and keep the island's fire asleep with him. This summer the offerings stopped, the sea boiled, and the Scorched Sovereign woke behind a shield of living flame. Ayaka, with her blade and fan, and Kokomi, priestess of the tides, descend to freeze him back to sleep.
+
+The cover opens with the key art, difficulty picker and a Begin button; scroll down for the prologue, a detailed guide to each heroine's skills, the rules (reactions, armour, the Aegis, switching) and a field guide to Pyrrhos's attacks.
 
 ## Controls
 
 | Input | Action |
 | --- | --- |
 | WASD / arrows | Move |
-| Click / J (hold) | Attack. Yukina: sword combo (3 slashes and a spin), must be in reach. Mizuha: long-range bubbles that drift to the boss, light damage |
-| 1 / 2 | Switch to Yukina / Mizuha (0.8s cooldown; a downed character can't be picked) |
-| E | Elemental Skill (Yukina): Frostfan Gale, an icy gust from her fan into the boss; her sword is frost-infused for 6s |
-| E | Elemental Skill (Mizuha): Tide Sprite, a 6s water spirit that keeps firing while the other character is on the field |
-| Q | Elemental Burst (Mizuha): Tidal Lullaby, a tide wave that hits once and heals both characters 20% + 80 HP; for 3s after, each of her attacks heals both by 1.5% + 5 |
-| Q | Elemental Burst (Yukina): Eternal Winter Waltz, 3s of strong ice wind over a wide area; sword damage x2.2 and damage taken -40% while it lasts |
+| Click / J (hold) | Attack. Ayaka: sword combo (3 slashes and a spin), must be in reach. Kokomi: long-range bubbles that drift to the boss, light damage |
+| 1 / 2 | Switch to Ayaka / Kokomi (0.8s cooldown; a downed character can't be picked) |
+| E | Elemental Skill (Ayaka): Frostfan Gale, an icy gust from her fan into the boss; her sword is frost-infused for 6s |
+| E | Elemental Skill (Kokomi): Tide Sprite, a 6s water spirit that keeps firing while the other character is on the field |
+| Q | Elemental Burst (Kokomi): Tidal Lullaby, a tide wave that hits once and heals both characters 20% + 80 HP; for 3s after, each of her attacks heals both by 1.5% + 5 |
+| Q | Elemental Burst (Ayaka): Eternal Winter Waltz, 3s of strong ice wind over a wide area; sword damage x2.2 and damage taken -40% while it lasts |
 | Space | Jump: while airborne, ground attacks (shockwaves, fire trails, eruptions, meteors, the charge) miss you |
 | Shift (hold) | Run: 65% faster, drains stamina |
 | C / Right-click | Dash with i-frames (uses stamina) |
