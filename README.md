@@ -1,6 +1,6 @@
 # Lullaby for a Fire Spirit
 
-**[Play it in your browser →](https://xinggao531.github.io/lullaby-for-a-fire-spirit/)**
+**[Play it in your browser →](https://xinggao531.github.io/lullaby-of-fire-spirit/)**
 
 ![Cover of Lullaby for a Fire Spirit: Ayaka and Kokomi facing the fire spirit Pyrrhos in a lava cave](docs/cover.jpg)
 
