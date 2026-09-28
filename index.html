@@ -642,14 +642,20 @@ const TITLE_FLUTE = [ // [bar, step, note, length in steps]
 ];
 function playTitleStep(i, t) {
   const bar = Math.floor(i / 8) % 8, st = i % 8, arp = TITLE_ARPS[bar % 4], round = Math.floor(i / 64);
-  mKoto(t, arp[st], st === 0 ? 0.07 : 0.045);
+  mKoto(t, arp[st], st === 0 ? 0.12 : 0.08);
   if (st === 0) {
-    mPad(t, [arp[0], arp[0] + 7], TITLE_STEP * 8, 0.012);
-    mTaiko(t, 0.12);
+    mPad(t, [arp[0], arp[0] + 7], TITLE_STEP * 8, 0.02);
+    mTaiko(t, 0.2);
   }
-  if (st === 6 && bar % 2 === 1) mTaiko(t, 0.06);
-  if (round > 0 || bar >= 2) for (const [b, s2, n, len] of TITLE_FLUTE) if (b === bar && s2 === st) mFlute(t, n, TITLE_STEP * len, 0.05);
-  if (Math.random() < 0.12) { const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = mf(86 + [0, 3, 5, 7, 10][(Math.random() * 5) | 0]); mOut(o, 0.012, t + Math.random() * TITLE_STEP, 0.003, 1.4); o.start(t); o.stop(t + TITLE_STEP + 1.5); }
+  if (st === 6 && bar % 2 === 1) mTaiko(t, 0.1);
+  if (round > 0 || bar >= 2) for (const [b, s2, n, len] of TITLE_FLUTE) if (b === bar && s2 === st) mFlute(t, n, TITLE_STEP * len, 0.085);
+  if (Math.random() < 0.1) { // soft wind chime: a bell-like pair of partials, started exactly when its envelope begins
+    const tc = t + Math.random() * TITLE_STEP, f = mf(81 + [0, 1, 5, 7, 8][(Math.random() * 5) | 0]);
+    for (const [mul, v] of [[1, 0.007], [2.76, 0.003]]) {
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f * mul;
+      mOut(o, v, tc, 0.01, 1.6); o.start(tc); o.stop(tc + 1.7);
+    }
+  }
 }
 function musicStart(song) {
   if (!AC || !noiseBuf) return;
