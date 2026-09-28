@@ -25,6 +25,16 @@ Character and boss art (in-battle sprites, Elemental Burst poses, the boss's nor
 
 The key legend stays on screen during the fight. Touch controls (joystick and buttons) show up on phones.
 
+## Difficulty
+
+Pick Easy, Normal or Hard on the cover (the choice is remembered in your browser).
+
+| | Boss HP | Damage to you | Time between attacks | Projectiles |
+| --- | --- | --- | --- | --- |
+| Easy | 70% | 60% | 140% | slower, fewer |
+| Normal | 100% | 100% | 100% | as designed |
+| Hard | 140% | 145% | 70% | faster, more |
+
 ## Arena
 
 The fight takes place in **Magma Hollow**, Pyrrhos's lava cave: a basalt platform with glowing fissures ringed by a lava lake with drifting highlights, popping bubbles and two lavafalls, under a ceiling of stalactites, with ash and embers in the air.
@@ -32,7 +42,7 @@ The fight takes place in **Magma Hollow**, Pyrrhos's lava cave: a basalt platfor
 ## Mechanics
 
 - **Elements:** Cryo and Hydro hits attach their element to the boss (icon over his head).
-- **Frozen:** Cryo on a Hydro-affected boss, or Hydro on a Cryo-affected boss, freezes him for 3.2s. He can't be frozen again for 4s after he thaws.
+- **Frozen:** Cryo on a Hydro-affected boss, or Hydro on a Cryo-affected boss, encases him in a block of ice for 3.2s; it cracks just before he breaks free and shatters when he does. He can't be frozen again for 4s after he thaws.
 - **Vaporize:** Hydro on his Pyro flames deals 2× damage.
 - **Party:** both characters' cooldowns tick while benched. Energy particles give 60% to the benched character. If the active character falls, the other one switches in.
 
