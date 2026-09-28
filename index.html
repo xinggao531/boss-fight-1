@@ -384,7 +384,7 @@ function newGame(mode) {
       dashT: 0, dashCd: 0, dashDx: 1, dashDy: 0, iframe: 0, dashIframe: 0, hurtT: 0, castT: 0, evadeT: 0, z: 0, vz: 0, running: false, runLock: false, swapCd: 0, swapFx: 0, swingT: 0, lungeT: 0, lungeDx: 0, lungeDy: 0, farT: 0 },
     B: { x: CX + 170, y: CY - 50, r: 62, hp: BOSS_HP, maxHp: BOSS_HP, hpShown: BOSS_HP, shield: 0, maxShield: 1,
       phase: 1, state: 'idle', t: 0, sub: 0, idleDur: 1.6, tx: CX, ty: CY - 40, el: null, elT: 0, freezeCd: 0, stunKind: 'break', stun: 0, hitFlash: 0,
-      invuln: 0, glow: 0, cdx: 1, cdy: 0, hitPlayer: false, spin: 0, last: '', reshield: false, dead: false, deathT: 0, trailT: 0, kick: 0, popT: 0, rollA: 0, pose: '' },
+      invuln: 0, glow: 0, cdx: 1, cdy: 0, hitPlayer: false, spin: 0, spinDir: 1, gapA: 0, gapShow: 0, pulse: 0, last: '', reshield: false, dead: false, deathT: 0, trailT: 0, kick: 0, popT: 0, rollA: 0, pose: '' },
     shots: [], foes: [], hazards: [], rings: [], parts: [], texts: [], orbs: [], blooms: [],
     stats: { dmg: 0, maxHit: 0, melts: 0, taken: 0 },
     party: CHARS.map(c => ({ ...c, hp: c.maxHp, hpShown: c.maxHp, energy: 20, skillCd: 0, burstCd: 0, infuseT: 0 })),
@@ -908,6 +908,12 @@ function fireball(x, y, ang, sp, r, dmg) {
   sp *= D().speed;
   S.foes.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: r || 13, dmg: dmg || 90, life: 5 });
 }
+const SPIRAL_T0 = 0.9, SPIRAL_T1 = 3.8;
+// a gap direction is fair only if the spot 150-280px out along it (where she would stand) is on the platform
+function gapReachable(B, a) {
+  for (const r of [150, 230, 280]) if (!inArena(B.x + Math.cos(a) * r, B.y - 40 + Math.sin(a) * r, 0.9)) return false;
+  return true;
+}
 function updBoss(dt) {
   const B = S.B, P = S.P;
   B.t += dt; B.hitFlash -= dt; B.invuln -= dt; B.kick -= dt; B.popT -= dt;
@@ -1015,16 +1021,35 @@ function updBoss(dt) {
       break;
     }
     case 'spiral': {
+      // Inferno Spiral: rings of fire, each with one wide gap. The gap turns a little after every ring
+      // (reversing halfway), so following it around him is the way through; a pale wedge marks where it is.
       B.glow = 1;
-      if (B.t > 0.5 && B.t < 3.6) {
+      const gapN = D().extra > 0 ? 3 : 4, turn = D().extra > 0 ? 0.3 : 0.22;
+      if (B.sub === 0 && B.t < SPIRAL_T0) {
+        // start the gap 50-80 degrees away from her, but only where there is floor to stand on
+        const toP = Math.atan2(P.y - 30 - bodyY, P.x - B.x);
+        let best = toP + 1.1, tries = 0;
+        do { best = toP + (Math.random() < 0.5 ? -1 : 1) * rand(0.9, 1.4); } while (!gapReachable(B, best) && ++tries < 30);
+        B.gapA = B.gapShow = best; B.pulse = 0; B.sub = 1e-4;
+      }
+      if (B.t >= SPIRAL_T0 && B.t < SPIRAL_T1) {
         B.sub -= dt;
         if (B.sub <= 0) {
-          B.sub = 0.1; B.spin += 0.23;
-          for (let k = 0; k < 4; k++) fireball(B.x, bodyY, B.spin + k * TAU / 4, 250, 10, 70);
+          B.sub = 0.55;
+          const N = 18;
+          for (let k = 0; k < N; k++) {
+            const off = (k + 0.5 - N / 2) * TAU / N;           // angle from the gap centre
+            if (Math.abs(off) < (gapN / 2) * TAU / N) continue;
+            fireball(B.x, bodyY, B.gapA + Math.PI + off + Math.PI, 210, 10, 70);
+          }
+          B.pulse++; B.gapShow = B.gapA; // the wedge follows the ring that is on its way out
+          let step = turn * B.spinDir * (B.pulse < 3 ? 1 : -1);
+          if (!gapReachable(B, B.gapA + step)) { step = -step; B.spinDir = -B.spinDir; } // never steer the gap off the platform
+          B.gapA += step;
           sfx('fire');
         }
       }
-      if (B.t > 4.0) toState('idle');
+      if (B.t > SPIRAL_T1 + 0.4) { toState('idle'); B.spinDir = -B.spinDir; }
       break;
     }
   }
@@ -1039,7 +1064,7 @@ function updFoes(dt) {
   for (const f of S.foes) {
     f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
     if (Math.random() < 0.5) S.parts.push({ x: f.x + rand(-4, 4), y: f.y + rand(-4, 4), vx: -f.vx * 0.1, vy: -f.vy * 0.1 - 20, life: 0.35, max: 0.35, size: f.r * 0.6, color: PYRO_C[(Math.random() * 4) | 0], g: 0, drag: 1, shape: 'dot', rot: 0, vr: 0, add: true });
-    if (Math.hypot(f.x - P.x, f.y - (P.y - 30 - P.z)) < f.r + 14) { if (hurtPlayer(f.dmg, f.x, f.y)) f.life = 0; }
+    if (Math.hypot(f.x - P.x, f.y - (P.y - 30 - P.z)) < f.r * 0.6 + 10) { if (hurtPlayer(f.dmg, f.x, f.y)) f.life = 0; }
     if (f.x < -60 || f.x > W + 60 || f.y < -60 || f.y > H + 60) f.life = 0;
   }
   S.foes = S.foes.filter(f => f.life > 0);
@@ -1892,6 +1917,18 @@ function drawGroundFX(g) {
     g.restore();
   }
   const B = S.B;
+  if (B.state === 'spiral' && B.t < SPIRAL_T1) {
+    // safe wedge: where the gap in the next ring of fire will be
+    const half = ((D().extra > 0 ? 3 : 4) / 2) * TAU / 18 * 0.85, ox = B.x, oy = B.y - 70;
+    const a = (B.t < SPIRAL_T0 ? 0.35 + 0.15 * Math.sin(t * 14) : 0.2) * Math.min(1, B.t * 4);
+    const wg = g.createRadialGradient(ox, oy, 40, ox, oy, 560);
+    wg.addColorStop(0, `rgba(210,245,255,${a})`); wg.addColorStop(1, 'rgba(210,245,255,0)');
+    g.save(); g.fillStyle = wg;
+    g.beginPath(); g.moveTo(ox, oy); g.arc(ox, oy, 560, B.gapShow - half, B.gapShow + half); g.closePath(); g.fill();
+    g.strokeStyle = `rgba(230,250,255,${a * 1.6})`; g.lineWidth = 1.5; g.setLineDash([10, 8]);
+    for (const e of [-half, half]) { g.beginPath(); g.moveTo(ox + Math.cos(B.gapShow + e) * 60, oy + Math.sin(B.gapShow + e) * 60); g.lineTo(ox + Math.cos(B.gapShow + e) * 560, oy + Math.sin(B.gapShow + e) * 560); g.stroke(); }
+    g.setLineDash([]); g.restore();
+  }
   if (B.state === 'charge' && B.sub === 0) {
     const len = 820, w = 70, px = -B.cdy, py = B.cdx;
     g.save();
